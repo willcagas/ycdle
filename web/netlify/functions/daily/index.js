@@ -206,34 +206,60 @@ export async function handler(event, context) {
       });
     }
     
-    // Build response - ALWAYS use FINAL_YC_ID, never anything else
+    // ============================================
+    // CRITICAL: Build response - SINGLE SOURCE OF TRUTH
+    // ============================================
+    // ALWAYS use FINAL_YC_ID for yc_id - both debug and non-debug paths
+    // This is the ONLY variable that should ever be used for yc_id
+    const YC_ID_FOR_RESPONSE = FINAL_YC_ID;
+    
+    // Build response - ALWAYS use YC_ID_FOR_RESPONSE, never anything else
     // This ensures debug and non-debug are 100% identical for yc_id
     let responseBody;
     if (isDebugMode) {
       responseBody = {
-        yc_id: FINAL_YC_ID, // Explicitly use FINAL_YC_ID
+        yc_id: YC_ID_FOR_RESPONSE, // Explicitly use YC_ID_FOR_RESPONSE
         debug: {
           seed: seed,
           utc_day_number: utcDayNumber,
           computed_index: computedIndex,
-          selected_yc_id: FINAL_YC_ID, // Same as yc_id above
+          selected_yc_id: YC_ID_FOR_RESPONSE, // Same as yc_id above
         },
       };
+      
+      // ============================================
+      // DEBUG ASSERTION: yc_id and selected_yc_id MUST match
+      // ============================================
+      if (responseBody.yc_id !== responseBody.debug.selected_yc_id) {
+        const errorMsg = `[DAILY FUNCTION CRITICAL ERROR] Debug mode mismatch! yc_id=${responseBody.yc_id} but selected_yc_id=${responseBody.debug.selected_yc_id}`;
+        console.error(errorMsg, {
+          yc_id: responseBody.yc_id,
+          selected_yc_id: responseBody.debug.selected_yc_id,
+          FINAL_YC_ID,
+          YC_ID_FOR_RESPONSE,
+          selectedCompany_id: selectedCompany.id,
+        });
+        // In debug mode, throw error to surface the bug immediately
+        throw new Error(errorMsg);
+      }
+      // ============================================
     } else {
       responseBody = {
-        yc_id: FINAL_YC_ID, // Same FINAL_YC_ID as debug mode
+        yc_id: YC_ID_FOR_RESPONSE, // Same YC_ID_FOR_RESPONSE as debug mode
       };
     }
     
     // Final validation: ensure both paths would return the same yc_id
-    const testDebugResponse = { yc_id: FINAL_YC_ID, debug: {} };
-    const testNonDebugResponse = { yc_id: FINAL_YC_ID };
+    const testDebugResponse = { yc_id: YC_ID_FOR_RESPONSE, debug: {} };
+    const testNonDebugResponse = { yc_id: YC_ID_FOR_RESPONSE };
     if (testDebugResponse.yc_id !== testNonDebugResponse.yc_id) {
       console.error('[DAILY FUNCTION ERROR] Response validation failed!', {
         testDebugResponse_yc_id: testDebugResponse.yc_id,
         testNonDebugResponse_yc_id: testNonDebugResponse.yc_id,
         FINAL_YC_ID,
+        YC_ID_FOR_RESPONSE,
       });
+      throw new Error('Response validation failed: debug and non-debug would return different yc_id values');
     }
     
     // ============================================
