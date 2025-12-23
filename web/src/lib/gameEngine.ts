@@ -170,20 +170,26 @@ export function checkLoss(guesses: string[]): boolean {
 }
 
 /**
- * Initialize a new game with a random target
+ * Initialize a new game with a target company by yc_id
  */
-export function initializeGame(companies: Company[], datasetVersion: string): GameState {
+export function initializeGame(
+  companies: Company[],
+  datasetVersion: string,
+  byId: Map<string | number, Company>,
+  targetYcId: number
+): GameState {
   if (companies.length === 0) {
     throw new Error('Cannot initialize game: companies array is empty')
   }
-  const randomIndex = Math.floor(Math.random() * companies.length)
-  const target = companies[randomIndex]
-
+  
+  const target = byId.get(targetYcId)
+  
   if (!target) {
-    throw new Error('Cannot initialize game: failed to select target company')
+    throw new Error(`Cannot initialize game: company with id ${targetYcId} not found`)
   }
 
   return {
+    targetYcId: targetYcId,
     targetSlug: target.slug,
     guesses: [],
     gameStatus: 'in-progress',

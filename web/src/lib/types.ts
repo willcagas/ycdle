@@ -20,7 +20,8 @@ export interface CompaniesData {
 }
 
 export interface GameState {
-  targetSlug: string | null;
+  targetYcId: number | null;
+  targetSlug: string | null; // Kept for backward compatibility and convenience
   guesses: string[];
   gameStatus: 'in-progress' | 'won' | 'lost';
   startedAt: string;

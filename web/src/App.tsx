@@ -31,11 +31,13 @@ function App() {
       ? {
           companies: data.companies,
           bySlug: data.bySlug,
+          byId: data.byId,
           datasetVersion: data.data.version,
         }
       : {
           companies: [],
           bySlug: new Map(),
+          byId: new Map(),
           datasetVersion: '',
         }
   )
@@ -60,7 +62,7 @@ function App() {
     }
   }, [gameState.gameState?.gameStatus])
 
-  if (loading) {
+  if (loading || gameState.loadingDaily) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <p className="text-xl text-black">Loading companies data...</p>

@@ -59,12 +59,29 @@ export default function GameGrid({ guesses, target }: GameGridProps) {
     prevGuessesLengthRef.current = guesses.length
   }, [guesses.length, guesses])
 
-  if (!target) return null
-
   // Reverse guesses so newest appears at the top
   const reversedGuesses = [...guesses].reverse()
 
-  // If no guesses, don't show anything (empty plate)
+  // If no target, show headers only
+  if (!target) {
+    return (
+      <div className="flex flex-col items-center gap-2 my-8">
+        {/* Header row with category labels */}
+        <div className="flex gap-2 mb-2">
+          {TILE_LABELS.map((label, colIndex) => (
+            <div
+              key={colIndex}
+              className="w-20 h-8 sm:w-24 sm:h-8 flex items-center justify-center text-sm font-semibold text-black"
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // If no guesses, show headers only
   if (reversedGuesses.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 my-8">
