@@ -81,7 +81,7 @@ function loadCompaniesData() {
 export async function handler(event, context) {
   try {
     // Get seed from environment variable with safe default
-    const seed = process.env.YC_DAILY_SEED;
+    const seed = process.env.YC_DAILY_SEED || 'ycdle-v1';
 
     // If seed is not set, return an error
     if (!seed) {
@@ -121,19 +121,10 @@ export async function handler(event, context) {
       };
     }
     
-    // ============================================
-    // SINGLE SOURCE OF TRUTH: Compute selection exactly once
-    // ============================================
-    // Generate deterministic hash from seed and day number
+    // Generate deterministic index
     const hashValue = hashSeedAndDay(seed, utcDayNumber);
-    
-    // Compute index into the filtered topCompanies array
-    // IMPORTANT: This index is ONLY valid for the topCompanies array
-    const computedIndex = hashValue % topCompanies.length;
-    
-    // Select company from the filtered topCompanies array using computedIndex
-    // This is the ONLY place where selection happens
-    const selectedCompany = topCompanies[computedIndex];
+    const index = hashValue % topCompanies.length;
+    const selectedCompany = topCompanies[index];
     
     if (!selectedCompany || !selectedCompany.id) {
       return {
@@ -145,32 +136,8 @@ export async function handler(event, context) {
       };
     }
     
-    // Extract yc_id from the selected company (single source of truth)
-    const selectedYcId = selectedCompany.id;
-    
-    // ============================================
-    // DEBUG LOGGING - REMOVE WHEN FIXED
-    // ============================================
-    console.log('[DAILY FUNCTION DEBUG]', {
-      seed,
-      utcDayNumber,
-      topCompaniesLength: topCompanies.length,
-      computedIndex,
-      selectedCompany: {
-        id: selectedCompany.id,
-        name: selectedCompany.name,
-        idType: typeof selectedCompany.id,
-      },
-      selectedYcId,
-      selectedYcIdType: typeof selectedYcId,
-    });
-    // ============================================
-    
-    // ============================================
-    // TEMPORARY DEBUG MODE - REMOVE WHEN DONE
-    // ============================================
+    // Check if debug mode is enabled
     const isDebugMode = event.queryStringParameters?.debug === '1';
-    // ============================================
     
     // Calculate cache expiration (time until next UTC midnight)
     const now = new Date();
@@ -182,197 +149,50 @@ export async function handler(event, context) {
     ));
     const secondsUntilMidnight = Math.floor((nextMidnight.getTime() - now.getTime()) / 1000);
     
-    // ============================================
-    // CRITICAL: Build response body - both paths MUST use the exact same selectedYcId
-    // ============================================
-    // SINGLE SOURCE OF TRUTH: Convert to number once and use everywhere
-    const FINAL_YC_ID = Number(selectedCompany.id);
+    // Generate a short hash of the seed for the X-YCDLE-Seed-Hash header (first 8 chars)
+    const seedHash = createHash('sha256').update(seed).digest('hex').substring(0, 8);
     
-    // Validate that we're using the correct ID
-    if (FINAL_YC_ID !== Number(selectedYcId)) {
-      console.error('[DAILY FUNCTION ERROR] ID conversion mismatch!', {
-        selectedCompany_id: selectedCompany.id,
-        selectedYcId,
-        FINAL_YC_ID,
-      });
-    }
+    // Prepare response headers
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-YCDLE-Day': utcDayNumber.toString(),
+      'X-YCDLE-Seed-Hash': seedHash,
+    };
     
-    // Validate that selectedCompany.id matches what we're returning
-    if (Number(selectedCompany.id) !== FINAL_YC_ID) {
-      console.error('[DAILY FUNCTION ERROR] ID mismatch!', {
-        selectedCompany_id: selectedCompany.id,
-        selectedCompany_idType: typeof selectedCompany.id,
-        FINAL_YC_ID,
-      });
-    }
-    
-    // ============================================
-    // CRITICAL: Build response - SINGLE SOURCE OF TRUTH
-    // ============================================
-    // ALWAYS use FINAL_YC_ID for yc_id - both debug and non-debug paths
-    // This is the ONLY variable that should ever be used for yc_id
-    // DO NOT use computedIndex, data.companies, or any other array/index
-    const YC_ID_FOR_RESPONSE = FINAL_YC_ID;
-    
-    // CRITICAL VALIDATION: Ensure we're not accidentally using computedIndex on wrong array
-    // This would cause the bug where non-debug returns wrong company
-    const WRONG_WAY_ID = data.companies[computedIndex]?.id;
-    if (WRONG_WAY_ID && WRONG_WAY_ID !== YC_ID_FOR_RESPONSE) {
-      console.error('[DAILY FUNCTION CRITICAL] Detected wrong array access!', {
-        correct_id_from_topCompanies: YC_ID_FOR_RESPONSE,
-        wrong_id_from_allCompanies: WRONG_WAY_ID,
-        computedIndex,
-        topCompaniesLength: topCompanies.length,
-        allCompaniesLength: data.companies.length,
-      });
-    }
-    
-    // Build response - ALWAYS use YC_ID_FOR_RESPONSE, never anything else
-    // This ensures debug and non-debug are 100% identical for yc_id
-    let responseBody;
+    // Set cache headers based on debug mode
     if (isDebugMode) {
-      responseBody = {
-        yc_id: YC_ID_FOR_RESPONSE, // Explicitly use YC_ID_FOR_RESPONSE
-        debug: {
-          seed: seed,
-          utc_day_number: utcDayNumber,
-          computed_index: computedIndex,
-          selected_yc_id: YC_ID_FOR_RESPONSE, // Same as yc_id above
-        },
-      };
-      
-      // ============================================
-      // DEBUG ASSERTION: yc_id and selected_yc_id MUST match
-      // ============================================
-      if (responseBody.yc_id !== responseBody.debug.selected_yc_id) {
-        const errorMsg = `[DAILY FUNCTION CRITICAL ERROR] Debug mode mismatch! yc_id=${responseBody.yc_id} but selected_yc_id=${responseBody.debug.selected_yc_id}`;
-        console.error(errorMsg, {
-          yc_id: responseBody.yc_id,
-          selected_yc_id: responseBody.debug.selected_yc_id,
-          FINAL_YC_ID,
-          YC_ID_FOR_RESPONSE,
-          selectedCompany_id: selectedCompany.id,
-        });
-        // In debug mode, throw error to surface the bug immediately
-        throw new Error(errorMsg);
-      }
-      // ============================================
+      // Debug mode: no caching to always show current logic
+      headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate';
+      headers['Pragma'] = 'no-cache';
+      headers['Expires'] = '0';
     } else {
-      // NON-DEBUG: Use EXACTLY the same YC_ID_FOR_RESPONSE
-      // DO NOT use: data.companies[computedIndex].id
-      // DO NOT use: computedIndex as an ID
-      // DO NOT use: any other variable
-      responseBody = {
-        yc_id: YC_ID_FOR_RESPONSE, // Same YC_ID_FOR_RESPONSE as debug mode
-      };
-      
-      // ============================================
-      // CRITICAL: Log non-debug response to catch bugs
-      // ============================================
-      console.log('[DAILY FUNCTION NON-DEBUG]', {
-        YC_ID_FOR_RESPONSE,
-        responseBody_yc_id: responseBody.yc_id,
-        selectedCompany_id: selectedCompany.id,
-        selectedCompany_name: selectedCompany.name,
-        match: responseBody.yc_id === YC_ID_FOR_RESPONSE,
-      });
-      // ============================================
+      // Normal mode: cache until next UTC midnight with stale-while-revalidate
+      // Use a short stale-while-revalidate window (e.g., 1 hour) for smooth transitions
+      const staleWhileRevalidate = 3600; // 1 hour
+      headers['Cache-Control'] = `public, max-age=${secondsUntilMidnight}, s-maxage=${secondsUntilMidnight}, stale-while-revalidate=${staleWhileRevalidate}`;
+      headers['Expires'] = nextMidnight.toUTCString();
     }
     
-    // Final validation: ensure both paths would return the same yc_id
-    const testDebugResponse = { yc_id: YC_ID_FOR_RESPONSE, debug: {} };
-    const testNonDebugResponse = { yc_id: YC_ID_FOR_RESPONSE };
-    if (testDebugResponse.yc_id !== testNonDebugResponse.yc_id) {
-      console.error('[DAILY FUNCTION ERROR] Response validation failed!', {
-        testDebugResponse_yc_id: testDebugResponse.yc_id,
-        testNonDebugResponse_yc_id: testNonDebugResponse.yc_id,
-        FINAL_YC_ID,
-        YC_ID_FOR_RESPONSE,
-      });
-      throw new Error('Response validation failed: debug and non-debug would return different yc_id values');
-    }
-    
-    // ============================================
-    // DEBUG LOGGING - REMOVE WHEN FIXED
-    // ============================================
-    console.log('[DAILY FUNCTION DEBUG] Response body:', {
-      isDebugMode,
-      selectedCompany_id: selectedCompany.id,
-      selectedYcId_original: selectedYcId,
-      FINAL_YC_ID,
-      responseBody_yc_id: responseBody.yc_id,
-      match: responseBody.yc_id === FINAL_YC_ID,
-      responseBody: JSON.stringify(responseBody),
-      // Critical check: what would debug vs non-debug return?
-      would_debug_return: isDebugMode ? responseBody.yc_id : FINAL_YC_ID,
-      would_nondebug_return: !isDebugMode ? responseBody.yc_id : FINAL_YC_ID,
-    });
-    // ============================================
-    
-    // ============================================
-    // FINAL VALIDATION: Before returning, ensure yc_id is correct
-    // ============================================
-    const finalYcId = responseBody.yc_id;
-    if (finalYcId !== YC_ID_FOR_RESPONSE) {
-      console.error('[DAILY FUNCTION CRITICAL] Response body yc_id does not match YC_ID_FOR_RESPONSE!', {
-        finalYcId,
-        YC_ID_FOR_RESPONSE,
-        selectedCompany_id: selectedCompany.id,
-        isDebugMode,
-      });
-      // Force correct value
-      responseBody.yc_id = YC_ID_FOR_RESPONSE;
-      if (isDebugMode && responseBody.debug) {
-        responseBody.debug.selected_yc_id = YC_ID_FOR_RESPONSE;
-      }
-    }
-    
-    // Log final response for debugging
-    let finalResponseBody = JSON.stringify(responseBody);
-    console.log('[DAILY FUNCTION FINAL]', {
-      isDebugMode,
-      final_yc_id: responseBody.yc_id,
-      YC_ID_FOR_RESPONSE,
-      selectedCompany_id: selectedCompany.id,
-      selectedCompany_name: selectedCompany.name,
-      responseBody_stringified: finalResponseBody,
-      // Parse it back to verify
-      parsed_back: JSON.parse(finalResponseBody),
-    });
-    // ============================================
-    
-    // CRITICAL: Verify the stringified response contains the correct yc_id
-    const parsedCheck = JSON.parse(finalResponseBody);
-    if (parsedCheck.yc_id !== YC_ID_FOR_RESPONSE) {
-      console.error('[DAILY FUNCTION CRITICAL] Stringified response has wrong yc_id!', {
-        parsed_yc_id: parsedCheck.yc_id,
-        YC_ID_FOR_RESPONSE,
-        stringified: finalResponseBody,
-      });
-      // Force correct value
-      parsedCheck.yc_id = YC_ID_FOR_RESPONSE;
-      if (isDebugMode && parsedCheck.debug) {
-        parsedCheck.debug.selected_yc_id = YC_ID_FOR_RESPONSE;
-      }
-      finalResponseBody = JSON.stringify(parsedCheck);
-    }
+    // Return only yc_id (or debug info if debug mode is enabled)
+    const responseBody = isDebugMode
+      ? {
+          yc_id: selectedCompany.id,
+          debug: {
+            seed: seed,
+            utc_day_number: utcDayNumber,
+            computed_index: index,
+            selected_yc_id: selectedCompany.id,
+            seconds_until_midnight: secondsUntilMidnight,
+          },
+        }
+      : {
+          yc_id: selectedCompany.id,
+        };
     
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        // TEMPORARILY DISABLE CACHING TO DEBUG - REMOVE WHEN FIXED
-        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        // Add a header with the yc_id to verify in response
-        'X-Daily-Yc-Id': String(YC_ID_FOR_RESPONSE),
-        'X-Selected-Company-Id': String(selectedCompany.id),
-        // Original cache headers (commented out for debugging):
-        // 'Cache-Control': `public, max-age=${secondsUntilMidnight}, s-maxage=${secondsUntilMidnight}`,
-        // 'Expires': nextMidnight.toUTCString(),
-      },
-      body: finalResponseBody,
+      headers,
+      body: JSON.stringify(responseBody),
     };
   } catch (error) {
     console.error('Error in daily function:', error);
