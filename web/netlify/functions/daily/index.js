@@ -82,6 +82,17 @@ export async function handler(event, context) {
   try {
     // Get seed from environment variable with safe default
     const seed = process.env.YC_DAILY_SEED || 'ycdle-v1';
+
+    // If seed is not set, return an error
+    if (!seed) {
+      return {
+        statusCode: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ error: 'YC_DAILY_SEED environment variable is required' }),
+      };
+    }
     
     // Compute UTC day number
     const utcDayNumber = getUTCDayNumber();
@@ -125,6 +136,12 @@ export async function handler(event, context) {
       };
     }
     
+    // ============================================
+    // TEMPORARY DEBUG MODE - REMOVE WHEN DONE
+    // ============================================
+    const isDebugMode = event.queryStringParameters?.debug === '1';
+    // ============================================
+    
     // Calculate cache expiration (time until next UTC midnight)
     const now = new Date();
     const nextMidnight = new Date(Date.UTC(
@@ -135,7 +152,21 @@ export async function handler(event, context) {
     ));
     const secondsUntilMidnight = Math.floor((nextMidnight.getTime() - now.getTime()) / 1000);
     
-    // Return only yc_id
+    // Return only yc_id (or debug info if debug mode is enabled)
+    const responseBody = isDebugMode
+      ? {
+          yc_id: selectedCompany.id,
+          debug: {
+            seed: seed,
+            utc_day_number: utcDayNumber,
+            computed_index: index,
+            selected_yc_id: selectedCompany.id,
+          },
+        }
+      : {
+          yc_id: selectedCompany.id,
+        };
+    
     return {
       statusCode: 200,
       headers: {
@@ -143,9 +174,7 @@ export async function handler(event, context) {
         'Cache-Control': `public, max-age=${secondsUntilMidnight}, s-maxage=${secondsUntilMidnight}`,
         'Expires': nextMidnight.toUTCString(),
       },
-      body: JSON.stringify({
-        yc_id: selectedCompany.id,
-      }),
+      body: JSON.stringify(responseBody),
     };
   } catch (error) {
     console.error('Error in daily function:', error);
