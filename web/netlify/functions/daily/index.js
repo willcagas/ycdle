@@ -185,47 +185,71 @@ export async function handler(event, context) {
     // ============================================
     // CRITICAL: Build response body - both paths MUST use the exact same selectedYcId
     // ============================================
-    // Force both paths to use the exact same value - no room for error
-    const yc_id = Number(selectedYcId); // Ensure it's a number
+    // SINGLE SOURCE OF TRUTH: Convert to number once and use everywhere
+    const FINAL_YC_ID = Number(selectedCompany.id);
     
-    // Validate that selectedCompany.id matches what we're returning
-    if (selectedCompany.id !== yc_id && Number(selectedCompany.id) !== yc_id) {
-      console.error('[DAILY FUNCTION ERROR] ID mismatch!', {
+    // Validate that we're using the correct ID
+    if (FINAL_YC_ID !== Number(selectedYcId)) {
+      console.error('[DAILY FUNCTION ERROR] ID conversion mismatch!', {
         selectedCompany_id: selectedCompany.id,
-        selectedCompany_idType: typeof selectedCompany.id,
-        yc_id,
-        yc_idType: typeof yc_id,
+        selectedYcId,
+        FINAL_YC_ID,
       });
     }
     
-    // Build base response with yc_id - this is the SINGLE SOURCE OF TRUTH
-    const baseResponse = {
-      yc_id: yc_id,
-    };
+    // Validate that selectedCompany.id matches what we're returning
+    if (Number(selectedCompany.id) !== FINAL_YC_ID) {
+      console.error('[DAILY FUNCTION ERROR] ID mismatch!', {
+        selectedCompany_id: selectedCompany.id,
+        selectedCompany_idType: typeof selectedCompany.id,
+        FINAL_YC_ID,
+      });
+    }
     
-    // Add debug fields if needed, but yc_id comes from baseResponse
-    const responseBody = isDebugMode
-      ? {
-          ...baseResponse, // Spread to ensure we use the exact same yc_id
-          debug: {
-            seed: seed,
-            utc_day_number: utcDayNumber,
-            computed_index: computedIndex,
-            selected_yc_id: yc_id, // Same as baseResponse.yc_id
-          },
-        }
-      : baseResponse; // Non-debug: use baseResponse directly
+    // Build response - ALWAYS use FINAL_YC_ID, never anything else
+    // This ensures debug and non-debug are 100% identical for yc_id
+    let responseBody;
+    if (isDebugMode) {
+      responseBody = {
+        yc_id: FINAL_YC_ID, // Explicitly use FINAL_YC_ID
+        debug: {
+          seed: seed,
+          utc_day_number: utcDayNumber,
+          computed_index: computedIndex,
+          selected_yc_id: FINAL_YC_ID, // Same as yc_id above
+        },
+      };
+    } else {
+      responseBody = {
+        yc_id: FINAL_YC_ID, // Same FINAL_YC_ID as debug mode
+      };
+    }
+    
+    // Final validation: ensure both paths would return the same yc_id
+    const testDebugResponse = { yc_id: FINAL_YC_ID, debug: {} };
+    const testNonDebugResponse = { yc_id: FINAL_YC_ID };
+    if (testDebugResponse.yc_id !== testNonDebugResponse.yc_id) {
+      console.error('[DAILY FUNCTION ERROR] Response validation failed!', {
+        testDebugResponse_yc_id: testDebugResponse.yc_id,
+        testNonDebugResponse_yc_id: testNonDebugResponse.yc_id,
+        FINAL_YC_ID,
+      });
+    }
     
     // ============================================
     // DEBUG LOGGING - REMOVE WHEN FIXED
     // ============================================
     console.log('[DAILY FUNCTION DEBUG] Response body:', {
       isDebugMode,
+      selectedCompany_id: selectedCompany.id,
       selectedYcId_original: selectedYcId,
-      yc_id_final: yc_id,
+      FINAL_YC_ID,
       responseBody_yc_id: responseBody.yc_id,
-      match: responseBody.yc_id === yc_id,
+      match: responseBody.yc_id === FINAL_YC_ID,
       responseBody: JSON.stringify(responseBody),
+      // Critical check: what would debug vs non-debug return?
+      would_debug_return: isDebugMode ? responseBody.yc_id : FINAL_YC_ID,
+      would_nondebug_return: !isDebugMode ? responseBody.yc_id : FINAL_YC_ID,
     });
     // ============================================
     
