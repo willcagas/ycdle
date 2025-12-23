@@ -3,20 +3,20 @@
  * 
  * Supports toggling between:
  * - "daily": Uses Netlify function to get deterministic daily company (production mode)
- * - "random": Uses random company selection (development mode)
+ * - "unlimited": Uses random company selection (unlimited play mode)
  * 
  * Mode can be set via:
- * 1. Query parameter: ?mode=random or ?mode=daily
+ * 1. Query parameter: ?mode=unlimited or ?mode=daily
  * 2. localStorage: yc-game-mode (persists across sessions)
  */
 
-export type GameMode = 'daily' | 'random';
+export type GameMode = 'daily' | 'unlimited';
 
 const STORAGE_KEY = 'yc-game-mode';
 
 /**
  * Get the current game mode
- * Checks query parameter first, then localStorage, defaults to 'random' in dev, 'daily' in production
+ * Checks query parameter first, then localStorage, defaults to 'unlimited' in dev, 'daily' in production
  */
 export function getGameMode(): GameMode {
   const isDev = import.meta.env.DEV;
@@ -25,27 +25,27 @@ export function getGameMode(): GameMode {
   if (typeof window !== 'undefined') {
     const params = new URLSearchParams(window.location.search);
     const queryMode = params.get('mode');
-    if (queryMode === 'random' || queryMode === 'daily') {
+    if (queryMode === 'unlimited' || queryMode === 'daily') {
       // Save to localStorage for persistence
       localStorage.setItem(STORAGE_KEY, queryMode);
       return queryMode;
     }
 
-    // In dev mode, ignore localStorage and default to random
+    // In dev mode, ignore localStorage and default to unlimited
     // (This prevents stale 'daily' preference from persisting in dev)
     if (isDev) {
-      return 'random';
+      return 'unlimited';
     }
 
     // In production, check localStorage
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'random' || stored === 'daily') {
+    if (stored === 'unlimited' || stored === 'daily') {
       return stored as GameMode;
     }
   }
 
-  // Default: random in dev, daily in production
-  return isDev ? 'random' : 'daily';
+  // Default: unlimited in dev, daily in production
+  return isDev ? 'unlimited' : 'daily';
 }
 
 /**
@@ -62,10 +62,10 @@ export function setGameMode(mode: GameMode): void {
 }
 
 /**
- * Check if we're in random mode
+ * Check if we're in unlimited mode
  */
 export function isRandomMode(): boolean {
-  return getGameMode() === 'random';
+  return getGameMode() === 'unlimited';
 }
 
 /**

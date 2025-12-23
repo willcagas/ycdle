@@ -15,6 +15,7 @@ function App() {
   const [showHelp, setShowHelp] = useState(false)
   const [showEndModal, setShowEndModal] = useState(false)
   const [gameMode, setGameModeState] = useState<GameMode>(getGameMode())
+  const [animationsComplete, setAnimationsComplete] = useState(false)
 
   useEffect(() => {
     loadCompaniesData()
@@ -61,17 +62,21 @@ function App() {
     if (gameState.gameState) {
       const isGameOver = gameState.gameState.gameStatus === 'won' || gameState.gameState.gameStatus === 'lost'
       if (isGameOver) {
+        // Reset animations complete state when game ends
+        setAnimationsComplete(false)
         // Wait for tile flip animations to complete
         // Each tile takes 1.0s to flip, with staggered delays (last tile starts at ~1.875s)
         // Total animation time is approximately 2.875s, so wait 3s to be safe
         const animationTimeout = setTimeout(() => {
+          setAnimationsComplete(true)
           setShowEndModal(true)
         }, 3000)
         
         return () => clearTimeout(animationTimeout)
       } else {
-        // Reset modal state when game is not over
+        // Reset modal state and animations complete when game is not over
         setShowEndModal(false)
+        setAnimationsComplete(false)
       }
     }
   }, [gameState.gameState?.gameStatus])
@@ -105,19 +110,19 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-4xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-10">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-10">
+          <div className="flex-1">
             <div className="flex">
-              <h1 className="text-4xl font-bold text-yc-orange mb-2">
+              <h1 className="text-3xl sm:text-4xl font-bold text-yc-orange mb-1 sm:mb-2">
                 YC
               </h1>
-              <h1 className="text-4xl font-bold text-black mb-2">
+              <h1 className="text-3xl sm:text-4xl font-bold text-black mb-1 sm:mb-2">
                 dle
               </h1>
             </div>
-            <p className="text-base text-black mb-2 font-medium">
+            <p className="text-sm sm:text-base text-black mb-2 font-medium">
               Test how well you know{' '}
               <a
                 href="https://www.ycombinator.com/companies?top_company=true"
@@ -134,33 +139,33 @@ function App() {
               <span className="text-xs text-black opacity-50">Mode:</span>
               <button
                 onClick={() => {
-                  const newMode: GameMode = gameMode === 'daily' ? 'random' : 'daily'
+                  const newMode: GameMode = gameMode === 'daily' ? 'unlimited' : 'daily'
                   setGameMode(newMode)
                   setGameModeState(newMode)
                   // Force reload to reinitialize game
                   window.location.reload()
                 }}
                 className="text-xs px-2 py-1 rounded border border-yc-orange text-yc-orange hover:bg-yc-orange hover:text-white transition-colors"
-                title="Toggle between daily (deterministic) and random (dev) mode"
+                title="Toggle between daily (deterministic) and unlimited (unlimited play) mode"
               >
-                {gameMode === 'daily' ? '📅 Daily' : '🎲 Random'}
+                {gameMode === 'daily' ? '📅 Daily' : '♾️ Unlimited'}
               </button>
             </div>
             {/* <p className="text-sm text-black opacity-70 ">
               {data.data.count} companies • Version {data.data.version}
             </p> */}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0">
             <button
               onClick={() => setShowHelp(true)}
-              className="px-4 py-2 bg-white border-2 border-yc-orange text-yc-orange rounded-lg hover:bg-yc-orange hover:text-white transition-colors"
+              className="px-3 sm:px-4 py-2 bg-white border-2 border-yc-orange text-yc-orange rounded-lg hover:bg-yc-orange hover:text-white transition-colors text-sm sm:text-base"
             >
               Help
             </button>
             {!isDailyMode() && (
               <button
                 onClick={startNewGame}
-                className="px-4 py-2 bg-yc-orange text-white rounded-lg hover:opacity-90 transition-opacity"
+                className="px-3 sm:px-4 py-2 bg-yc-orange text-white rounded-lg hover:opacity-90 transition-opacity text-sm sm:text-base"
               >
                 New Game
               </button>
@@ -169,11 +174,12 @@ function App() {
         </div>
 
         {/* Guess Input */}
-        <div className="mt-8">
+        <div className="mt-4 sm:mt-8">
           <GuessInput
             companies={data.companies}
             onGuess={makeGuess}
             disabled={isGameOver}
+            showGameOverPlaceholder={isGameOver && animationsComplete}
             previousGuesses={state.guesses}
           />
         </div>
@@ -182,9 +188,9 @@ function App() {
         <GameGrid guesses={guesses} target={target} />
 
         {/* Game Status */}
-        {isGameOver && (
-          <div className="mt-4 text-center">
-            <p className="text-lg font-semibold text-black">
+        {isGameOver && animationsComplete && (
+          <div className="mt-4 text-center px-2">
+            <p className="text-base sm:text-lg font-semibold text-black">
               {state.gameStatus === 'won'
                 ? `🎉 You won in ${state.guesses.length} guess${state.guesses.length !== 1 ? 'es' : ''}!`
                 : 'Game Over. Better luck next time!'}
@@ -209,8 +215,8 @@ function App() {
         )}
 
         {/* Footer */}
-        <div className="mt-12 text-center">
-          <p className="text-sm text-black opacity-60">
+        <div className="mt-8 sm:mt-12 text-center px-2">
+          <p className="text-xs sm:text-sm text-black opacity-60">
             Not affiliated with YC
           </p>
         </div>

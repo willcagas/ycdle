@@ -65,12 +65,12 @@ export default function DailyCountdown() {
   }, []);
 
   return (
-    <div className="mt-4 pt-4 border-t border-gray-200 text-center">
-      <p className="text-sm text-black mb-2">Next startup in</p>
-      <div className="text-3xl font-mono font-bold text-black mb-2">
+    <div className="text-center">
+      <p className="text-[10px] sm:text-xs font-medium text-black opacity-70 mb-1.5 sm:mb-2">Next startup in</p>
+      <div className="text-lg sm:text-xl font-mono font-bold text-yc-orange mb-1.5 sm:mb-2">
         {formatTime(time.hours)}:{formatTime(time.minutes)}:{formatTime(time.seconds)}
       </div>
-      <div className="text-xs text-black opacity-70">
+      <div className="text-[9px] sm:text-[10px] text-black opacity-60 px-2">
         Resets at UTC midnight ({localMidnight} {timezone})
       </div>
     </div>

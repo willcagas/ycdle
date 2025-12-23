@@ -29,7 +29,7 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [loadingDaily, setLoadingDaily] = useState(true)
   const [dailyYcId, setDailyYcId] = useState<number | null>(null)
-  const [gameMode, setGameMode] = useState<'daily' | 'random'>(getGameMode())
+  const [gameMode, setGameMode] = useState<'daily' | 'unlimited'>(getGameMode())
 
   // Check game mode on mount
   useEffect(() => {
@@ -64,11 +64,11 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
 
     const saved = loadGameState()
     
-    // If daily mode but function unavailable, fall back to random
+    // If daily mode but function unavailable, fall back to unlimited
     const useRandom = isRandomMode() || (gameMode === 'daily' && dailyYcId === null)
     
     if (useRandom) {
-      // Random mode
+      // Unlimited mode
       if (saved && saved.datasetVersion === datasetVersion) {
         setGameState(saved)
       } else {
@@ -126,7 +126,7 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
     }
     
     if (isRandomMode()) {
-      // Random mode
+      // Unlimited mode
       try {
         const newState = initializeGameRandom(companies, datasetVersion)
         setGameState(newState)
@@ -138,7 +138,7 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
       // Daily mode
       const ycId = await fetchDailyCompanyId()
       if (ycId === null) {
-        // Fallback to random if function unavailable
+        // Fallback to unlimited if function unavailable
         const newState = initializeGameRandom(companies, datasetVersion)
         setGameState(newState)
         saveGameState(newState)

@@ -39,47 +39,47 @@ export default function EndModal({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center z-50"
+      className="fixed inset-0 flex items-center justify-center z-50 p-2 sm:p-4"
       style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg p-4 w-md max-w-2xl mx-4 border-2 border-yc-orange"
+        className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md mx-2 sm:mx-4 border-2 border-yc-orange max-h-[95vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-bold mb-3 text-black">
+        <h2 className="text-lg sm:text-xl font-bold mb-3 text-black text-center">
           {gameStatus === 'won' ? '🎉 You Won!' : 'Game Over'}
         </h2>
 
         <CompanyReveal company={target} />
 
         <div className="mt-3">
-          <p className="text-sm font-semibold mb-1.5 text-black">
+          <p className="text-xs sm:text-sm font-semibold mb-1.5 text-black text-center">
             Share your results:
           </p>
-          <div className="bg-black border border-yc-orange p-2 rounded font-mono text-xs whitespace-pre-wrap mb-2 text-white">
+          <div className="bg-black border border-yc-orange p-2 sm:p-3 rounded font-mono text-[10px] sm:text-xs whitespace-pre-wrap mb-2 text-white overflow-x-auto text-center">
             {shareText}
           </div>
           <button
             onClick={handleCopy}
-            className="w-full px-4 py-2 bg-yc-orange text-white rounded-lg hover:opacity-90 mb-2"
+            className="w-full px-3 sm:px-4 py-2 bg-yc-orange text-white text-sm sm:text-base rounded-lg hover:opacity-90 mb-2"
           >
             {copied ? '✓ Copied!' : 'Copy to Clipboard'}
           </button>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           {!isDailyMode() && (
             <button
               onClick={onNewGame}
-              className="flex-1 px-4 py-2 bg-white border-2 border-yc-orange text-yc-orange rounded-lg hover:bg-yc-orange hover:text-white transition-colors"
+              className="w-full sm:flex-1 px-3 sm:px-4 py-2 bg-white border-2 border-yc-orange text-yc-orange text-sm sm:text-base rounded-lg hover:bg-yc-orange hover:text-white transition-colors"
             >
               New Game
             </button>
           )}
           <button
             onClick={onClose}
-            className={isDailyMode() ? "w-full px-4 py-2 bg-white border-2 border-yc-orange text-yc-orange rounded-lg hover:bg-yc-orange hover:text-white transition-colors" : "flex-1 px-4 py-2 bg-white border-2 border-yc-orange text-yc-orange rounded-lg hover:bg-yc-orange hover:text-white transition-colors"}
+            className={isDailyMode() ? "w-full px-3 sm:px-4 py-2 bg-white border-2 border-yc-orange text-yc-orange text-sm sm:text-base rounded-lg hover:bg-yc-orange hover:text-white transition-colors" : "w-full sm:flex-1 px-3 sm:px-4 py-2 bg-white border-2 border-yc-orange text-yc-orange text-sm sm:text-base rounded-lg hover:bg-yc-orange hover:text-white transition-colors"}
           >
             Close
           </button>
@@ -95,7 +95,7 @@ function generateShareText(
   gameStatus: 'won' | 'lost'
 ): string {
   const lines: string[] = []
-  lines.push('YC Guesser')
+  lines.push('YCdle')
 
   if (gameStatus === 'won') {
     lines.push(`Solved in ${guesses.length}/${MAX_GUESSES}`)

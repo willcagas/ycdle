@@ -59,18 +59,17 @@ export default function ColorLegend({ onClose }: ColorLegendProps) {
       {onClose && (
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 w-6 h-6 bg-red-600 text-white rounded flex items-center justify-center hover:bg-red-700 transition-colors"
+          className="absolute top-1 right-1 sm:top-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 bg-red-600 text-white rounded flex items-center justify-center hover:bg-red-700 transition-colors"
           aria-label="Close legend"
         >
-          <span className="text-sm font-bold">×</span>
+          <span className="text-xs sm:text-sm font-bold">×</span>
         </button>
       )}
-      <h3 className="text-center font-semibold text-black mb-4">Color indicators</h3>
-      <div className="flex flex-wrap justify-center gap-4">
+      <div className="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4">
         {legendItems.map((item) => (
-          <div key={item.label} className="flex flex-col items-center gap-2">
+          <div key={item.label} className="flex flex-col items-center gap-1.5 sm:gap-2">
             <div
-              className="w-12 h-12 border-2 rounded-lg relative flex items-center justify-center"
+              className="w-10 h-10 sm:w-12 sm:h-12 border-2 rounded-lg relative flex items-center justify-center"
               style={{
                 borderColor: item.borderColor,
                 backgroundColor: item.backgroundColor,
@@ -80,8 +79,9 @@ export default function ColorLegend({ onClose }: ColorLegendProps) {
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none flex flex-col items-center justify-center">
                   {item.arrow === 'up' ? (
                     <>
-                      {/* Up arrow: arrowhead on top, stem below (pointing up) */}
+                      {/* Up arrow: arrowhead on top, stem below (pointing up) - desktop */}
                       <div
+                        className="hidden sm:block"
                         style={{
                           width: 0,
                           height: 0,
@@ -91,17 +91,38 @@ export default function ColorLegend({ onClose }: ColorLegendProps) {
                         }}
                       />
                       <div
+                        className="hidden sm:block"
                         style={{
                           width: '6px',
                           height: '8px',
+                          backgroundColor: arrowColor,
+                        }}
+                      />
+                      {/* Mobile arrow - smaller */}
+                      <div
+                        className="sm:hidden"
+                        style={{
+                          width: 0,
+                          height: 0,
+                          borderLeft: '8px solid transparent',
+                          borderRight: '8px solid transparent',
+                          borderBottom: `10px solid ${arrowColor}`,
+                        }}
+                      />
+                      <div
+                        className="sm:hidden"
+                        style={{
+                          width: '4px',
+                          height: '5px',
                           backgroundColor: arrowColor,
                         }}
                       />
                     </>
                   ) : (
                     <>
-                      {/* Down arrow: stem on top, arrowhead below (pointing down) */}
+                      {/* Down arrow: stem on top, arrowhead below (pointing down) - desktop */}
                       <div
+                        className="hidden sm:block"
                         style={{
                           width: '6px',
                           height: '8px',
@@ -109,6 +130,7 @@ export default function ColorLegend({ onClose }: ColorLegendProps) {
                         }}
                       />
                       <div
+                        className="hidden sm:block"
                         style={{
                           width: 0,
                           height: 0,
@@ -117,12 +139,31 @@ export default function ColorLegend({ onClose }: ColorLegendProps) {
                           borderTop: `16px solid ${arrowColor}`,
                         }}
                       />
+                      {/* Mobile arrow - smaller */}
+                      <div
+                        className="sm:hidden"
+                        style={{
+                          width: '4px',
+                          height: '5px',
+                          backgroundColor: arrowColor,
+                        }}
+                      />
+                      <div
+                        className="sm:hidden"
+                        style={{
+                          width: 0,
+                          height: 0,
+                          borderLeft: '8px solid transparent',
+                          borderRight: '8px solid transparent',
+                          borderTop: `10px solid ${arrowColor}`,
+                        }}
+                      />
                     </>
                   )}
                 </div>
               )}
             </div>
-            <span className="text-sm text-black font-medium">{item.label}</span>
+            <span className="text-xs sm:text-sm text-black font-medium">{item.label}</span>
           </div>
         ))}
       </div>

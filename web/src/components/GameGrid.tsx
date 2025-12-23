@@ -65,17 +65,19 @@ export default function GameGrid({ guesses, target }: GameGridProps) {
   // If no target, show headers only
   if (!target) {
     return (
-      <div className="flex flex-col items-center gap-2 my-8">
+      <div className="w-full my-4 sm:my-8 overflow-x-auto">
+        <div className="flex flex-col items-center gap-1.5 sm:gap-2 min-w-max mx-auto px-2 sm:px-0">
         {/* Header row with category labels */}
-        <div className="flex gap-2 mb-2">
+          <div className="flex gap-1.5 sm:gap-2 mb-2">
           {TILE_LABELS.map((label, colIndex) => (
             <div
               key={colIndex}
-              className="w-20 h-8 sm:w-24 sm:h-8 flex items-center justify-center text-sm font-semibold text-black"
+                className="w-14 h-6 sm:w-20 sm:h-8 md:w-24 flex items-center justify-center text-xs sm:text-sm font-semibold text-black flex-shrink-0"
             >
               {label}
             </div>
           ))}
+          </div>
         </div>
       </div>
     )
@@ -84,30 +86,33 @@ export default function GameGrid({ guesses, target }: GameGridProps) {
   // If no guesses, show headers only
   if (reversedGuesses.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-2 my-8">
+      <div className="w-full my-4 sm:my-8 overflow-x-auto">
+        <div className="flex flex-col items-center gap-1.5 sm:gap-2 min-w-max mx-auto px-2 sm:px-0">
         {/* Header row with category labels */}
-        <div className="flex gap-2 mb-2">
+          <div className="flex gap-1.5 sm:gap-2 mb-2">
           {TILE_LABELS.map((label, colIndex) => (
             <div
               key={colIndex}
-              className="w-20 h-8 sm:w-24 sm:h-8 flex items-center justify-center text-sm font-semibold text-black"
+                className="w-14 h-6 sm:w-20 sm:h-8 md:w-24 flex items-center justify-center text-xs sm:text-sm font-semibold text-black flex-shrink-0"
             >
               {label}
             </div>
           ))}
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col items-center gap-2 my-8">
+    <div className="w-full my-4 sm:my-8 overflow-x-auto">
+      <div className="flex flex-col items-center gap-1.5 sm:gap-2 min-w-max mx-auto px-2 sm:px-0">
       {/* Header row with category labels */}
-      <div className="flex gap-2 mb-2">
+        <div className="flex gap-1.5 sm:gap-2 mb-2">
         {TILE_LABELS.map((label, colIndex) => (
           <div
             key={colIndex}
-            className="w-20 h-8 sm:w-24 sm:h-8 flex items-center justify-center text-sm font-semibold text-black"
+              className="w-14 h-6 sm:w-20 sm:h-8 md:w-24 flex items-center justify-center text-xs sm:text-sm font-semibold text-black flex-shrink-0"
           >
             {label}
           </div>
@@ -125,7 +130,7 @@ export default function GameGrid({ guesses, target }: GameGridProps) {
         return (
           <div 
             key={guess.slug} 
-            className={`flex gap-2 ${isNewRow ? 'row-new' : isExistingRow ? 'row-existing' : ''}`}
+              className={`flex gap-1.5 sm:gap-2 flex-shrink-0 ${isNewRow ? 'row-new' : isExistingRow ? 'row-existing' : ''}`}
           >
             {results.map((tileResult, colIndex) => (
               <Tile
@@ -140,6 +145,7 @@ export default function GameGrid({ guesses, target }: GameGridProps) {
           </div>
         )
       })}
+      </div>
     </div>
   )
 }

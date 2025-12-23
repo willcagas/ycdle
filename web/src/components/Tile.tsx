@@ -12,7 +12,7 @@ export default function Tile({ result, value, companyTile, logoUrl, animationDel
   if (!result) {
     // Empty tile (no guess yet)
     return (
-      <div className="w-20 h-20 sm:w-24 sm:h-24 border-2 border-yc-orange border-opacity-30 rounded-lg flex items-center justify-center bg-white">
+      <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 border-2 border-yc-orange border-opacity-30 rounded-lg flex items-center justify-center bg-white flex-shrink-0">
       </div>
     )
   }
@@ -48,7 +48,7 @@ export default function Tile({ result, value, companyTile, logoUrl, animationDel
   if (companyTile) {
     return (
       <div 
-        className={`w-20 h-20 sm:w-24 sm:h-24 border-2 border-yc-orange rounded-lg flex items-center justify-center bg-white relative ${animationDelay !== undefined ? 'tile-flip' : ''}`}
+        className={`w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 border-2 border-yc-orange rounded-lg flex items-center justify-center bg-white relative flex-shrink-0 ${animationDelay !== undefined ? 'tile-flip' : ''}`}
         style={{
           ...(animationDelay !== undefined ? { animationDelay: `${animationDelay}s` } : {})
         }}
@@ -64,7 +64,7 @@ export default function Tile({ result, value, companyTile, logoUrl, animationDel
           <img
             src={logoUrl}
             alt={value || 'Company logo'}
-            className="w-full h-full object-contain p-2 relative z-20"
+            className="w-full h-full object-contain p-1 sm:p-2 relative z-20"
           />
         )}
       </div>
@@ -86,7 +86,7 @@ export default function Tile({ result, value, companyTile, logoUrl, animationDel
 
   return (
     <div
-      className={`w-20 h-20 sm:w-24 sm:h-24 border-2 rounded-lg flex flex-col items-center justify-center text-white font-bold text-sm p-1 relative overflow-hidden ${animationDelay !== undefined ? 'tile-flip' : ''}`}
+      className={`w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 border-2 rounded-lg flex flex-col items-center justify-center text-white font-bold text-[10px] sm:text-xs md:text-sm p-0.5 sm:p-1 relative overflow-hidden flex-shrink-0 ${animationDelay !== undefined ? 'tile-flip' : ''}`}
       style={{
         borderColor: colorStyles.borderColor,
         ...(animationDelay !== undefined ? { animationDelay: `${animationDelay}s` } : {})
@@ -133,8 +133,9 @@ export default function Tile({ result, value, companyTile, logoUrl, animationDel
         >
           {result.arrow === 'up' ? (
             <>
-              {/* Up arrow: arrowhead on top, stem below (pointing up) */}
+              {/* Up arrow: arrowhead on top, stem below (pointing up) - responsive sizing */}
               <div
+                className="hidden sm:block"
                 style={{
                   width: 0,
                   height: 0,
@@ -144,17 +145,38 @@ export default function Tile({ result, value, companyTile, logoUrl, animationDel
                 }}
               />
               <div
+                className="hidden sm:block"
                 style={{
                   width: '20px',
                   height: '24px',
+                  backgroundColor: arrowColor,
+                }}
+              />
+              {/* Mobile arrow - smaller */}
+              <div
+                className="sm:hidden"
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderLeft: '20px solid transparent',
+                  borderRight: '20px solid transparent',
+                  borderBottom: `26px solid ${arrowColor}`,
+                }}
+              />
+              <div
+                className="sm:hidden"
+                style={{
+                  width: '12px',
+                  height: '14px',
                   backgroundColor: arrowColor,
                 }}
               />
             </>
           ) : (
             <>
-              {/* Down arrow: stem on top, arrowhead below (pointing down) */}
+              {/* Down arrow: stem on top, arrowhead below (pointing down) - responsive sizing */}
               <div
+                className="hidden sm:block"
                 style={{
                   width: '20px',
                   height: '24px',
@@ -162,6 +184,7 @@ export default function Tile({ result, value, companyTile, logoUrl, animationDel
                 }}
               />
               <div
+                className="hidden sm:block"
                 style={{
                   width: 0,
                   height: 0,
@@ -170,12 +193,31 @@ export default function Tile({ result, value, companyTile, logoUrl, animationDel
                   borderTop: `46px solid ${arrowColor}`,
                 }}
               />
+              {/* Mobile arrow - smaller */}
+              <div
+                className="sm:hidden"
+                style={{
+                  width: '12px',
+                  height: '14px',
+                  backgroundColor: arrowColor,
+                }}
+              />
+              <div
+                className="sm:hidden"
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderLeft: '20px solid transparent',
+                  borderRight: '20px solid transparent',
+                  borderTop: `26px solid ${arrowColor}`,
+                }}
+              />
             </>
           )}
         </div>
       )}
       {value && (
-        <span className="text-center leading-tight relative z-20">{value}</span>
+        <span className="text-center leading-tight relative z-20 break-words px-0.5 line-clamp-2 sm:line-clamp-none">{value}</span>
       )}
     </div>
   )

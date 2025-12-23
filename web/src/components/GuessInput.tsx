@@ -7,9 +7,10 @@ interface GuessInputProps {
   onGuess: (slug: string) => void;
   disabled?: boolean;
   previousGuesses: string[];
+  showGameOverPlaceholder?: boolean;
 }
 
-export default function GuessInput({ companies, onGuess, disabled, previousGuesses }: GuessInputProps) {
+export default function GuessInput({ companies, onGuess, disabled, previousGuesses, showGameOverPlaceholder = false }: GuessInputProps) {
   const [query, setQuery] = useState('')
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
   const [selectedIndex, setSelectedIndex] = useState(-1)
@@ -95,7 +96,7 @@ export default function GuessInput({ companies, onGuess, disabled, previousGuess
   }
 
   return (
-    <div className="relative w-full max-w-sm mx-auto">
+    <div className="relative w-full max-w-sm mx-auto px-2 sm:px-0">
       <input
         ref={inputRef}
         type="text"
@@ -105,13 +106,13 @@ export default function GuessInput({ companies, onGuess, disabled, previousGuess
         onFocus={handleFocus}
         onBlur={handleBlur}
         disabled={disabled}
-        placeholder={disabled ? 'Game over' : 'Type a top YC startup name...'}
-        className="w-full px-3 py-2 text-base border-2 border-yc-orange rounded-lg focus:outline-none focus:ring-2 focus:ring-yc-orange bg-white text-black disabled:opacity-50 disabled:cursor-not-allowed"
+        placeholder={showGameOverPlaceholder ? 'Game over' : 'Type a top YC startup name...'}
+        className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border-2 border-yc-orange rounded-lg focus:outline-none focus:ring-2 focus:ring-yc-orange bg-white text-black disabled:opacity-50 disabled:cursor-not-allowed"
       />
       {showDropdown && filteredCompanies.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-1 bg-white border-2 border-yc-orange rounded-lg shadow-lg max-h-96 overflow-y-auto"
+          className="absolute z-50 w-full mt-1 bg-white border-2 border-yc-orange rounded-lg shadow-lg max-h-64 sm:max-h-96 overflow-y-auto left-0 right-0 mx-2 sm:mx-0"
         >
           {filteredCompanies.map((company, index) => (
             <button
@@ -119,7 +120,7 @@ export default function GuessInput({ companies, onGuess, disabled, previousGuess
               type="button"
               onClick={() => handleSelect(company)}
               onMouseEnter={() => setSelectedIndex(index)}
-              className={`w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-yc-orange hover:bg-opacity-10 ${
+              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 sm:gap-3 text-left hover:bg-yc-orange hover:bg-opacity-10 ${
                 index === selectedIndex
                   ? 'bg-yc-orange bg-opacity-10'
                   : ''
@@ -129,11 +130,11 @@ export default function GuessInput({ companies, onGuess, disabled, previousGuess
                 <img
                   src={company.smallLogoUrl}
                   alt={company.name}
-                  className="w-8 h-8 object-contain flex-shrink-0"
+                  className="w-7 h-7 sm:w-8 sm:h-8 object-contain flex-shrink-0"
                 />
               )}
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-black truncate">
+                <div className="font-medium text-sm sm:text-base text-black truncate">
                   {company.name}
                 </div>
               </div>

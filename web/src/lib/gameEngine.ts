@@ -170,7 +170,7 @@ export function checkLoss(guesses: string[]): boolean {
 }
 
 /**
- * Initialize a new game with a random target (development mode)
+ * Initialize a new game with a random target (unlimited mode)
  */
 export function initializeGameRandom(
   companies: Company[],
