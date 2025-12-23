@@ -39,7 +39,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
 
         {/* Properties Section */}
         <div className="mb-8">
-          <h3 className="text-sm sm:text-base font-semibold text-black mb-3 text-center">Properties to Compare</h3>
+          <h3 className="text-sm sm:text-base font-semibold text-black mb-3 text-center">Properties</h3>
           <div className="space-y-2">
             <div>
               <div className="font-semibold text-sm text-black mb-0.5">Batch</div>

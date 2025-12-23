@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import type { Company } from '../lib/types'
-import { getTileResults, MAX_GUESSES } from '../lib/gameEngine'
-import { isDailyMode } from '../lib/gameMode'
+import type { Company } from '../lib/data'
+import { getTileResults, MAX_GUESSES } from '../lib/game'
+import { isDailyMode } from '../lib/modes'
 import CompanyReveal from './CompanyReveal'
 
 interface EndModalProps {
@@ -57,7 +57,7 @@ export default function EndModal({
           <p className="text-xs sm:text-sm font-semibold mb-1.5 text-black text-center">
             Share your results:
           </p>
-          <div className="bg-black border border-yc-orange p-2 sm:p-3 rounded font-mono text-[10px] sm:text-xs whitespace-pre-wrap mb-2 text-white overflow-x-auto text-center">
+          <div className="bg-gray border-2 border-yc-orange p-2 sm:p-3 rounded font-mono text-[10px] sm:text-xs whitespace-pre-wrap mb-2 text-black overflow-x-auto text-center">
             {shareText}
           </div>
           <button
@@ -128,7 +128,7 @@ function generateShareText(
   }
 
   lines.push('') // Empty line
-  lines.push('https://ycdle.com')
+  lines.push('https://ycdle.netlify.app')
 
   return lines.join('\n')
 }

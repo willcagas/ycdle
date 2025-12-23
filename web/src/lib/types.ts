@@ -1,23 +1,8 @@
-export interface Company {
-  id: number | string;
-  slug: string;
-  name: string;
-  smallLogoUrl: string;
-  oneLiner: string;
-  batch: string;
-  batchIndex: number | null; // Parsed from string
-  status: string;
-  primaryIndustry: string;
-  industries: string[];
-  badges: string[];
-  regions: string[];
-}
-
-export interface CompaniesData {
-  version: string;
-  count: number;
-  companies: Company[];
-}
+/**
+ * Game-related type definitions
+ * 
+ * For data-related types (Company, CompaniesData), see lib/data/types.ts
+ */
 
 export interface GameState {
   targetYcId: number | null;

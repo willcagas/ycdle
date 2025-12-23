@@ -1,53 +1,11 @@
 import { useState, useEffect } from 'react'
-
-/**
- * Calculate time until next UTC midnight
- */
-function getTimeUntilNextMidnight(): {
-  hours: number;
-  minutes: number;
-  seconds: number;
-} {
-  const now = new Date();
-  const nextMidnight = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() + 1,
-    0, 0, 0, 0
-  ));
-  
-  const diff = nextMidnight.getTime() - now.getTime();
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-  
-  return { hours, minutes, seconds };
-}
+import { getTimeUntilNextMidnight, getLocalMidnightTime } from '../lib/core'
 
 /**
  * Format time with leading zeros
  */
 function formatTime(value: number): string {
   return value.toString().padStart(2, '0');
-}
-
-/**
- * Get what UTC midnight is in the user's local time
- */
-function getLocalMidnightTime(): string {
-  const now = new Date();
-  const nextUTCMidnight = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() + 1,
-    0, 0, 0, 0
-  ));
-  
-  // Format UTC midnight in user's local timezone
-  const localHours = nextUTCMidnight.getHours();
-  const localMinutes = nextUTCMidnight.getMinutes();
-  
-  return `${localHours.toString().padStart(2, '0')}:${localMinutes.toString().padStart(2, '0')}`;
 }
 
 export default function DailyCountdown() {

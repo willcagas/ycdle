@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import type { Company } from '../lib/types'
+import type { Company } from '../lib/data'
 import { normalizeForComparison } from '../utils/normalization'
 
 interface GuessInputProps {
@@ -12,22 +12,19 @@ interface GuessInputProps {
 
 export default function GuessInput({ companies, onGuess, disabled, previousGuesses, showGameOverPlaceholder = false }: GuessInputProps) {
   const [query, setQuery] = useState('')
-  const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [showDropdown, setShowDropdown] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Filter companies based on query
-  useEffect(() => {
+  // Compute filtered companies (derived state)
+  const filteredCompanies = (() => {
     if (!query.trim()) {
-      setFilteredCompanies([])
-      setShowDropdown(false)
-      return
+      return []
     }
 
     const normalizedQuery = normalizeForComparison(query)
-    const filtered = companies
+    return companies
       .filter((company) => {
         // Only show companies with "topCompany" badge (knowledge-based recognition requirement)
         const normalizedBadges = company.badges.map(badge => badge.toLowerCase())
@@ -38,11 +35,24 @@ export default function GuessInput({ companies, onGuess, disabled, previousGuess
         return normalizeForComparison(company.name).includes(normalizedQuery)
       })
       .slice(0, 10) // Max 10 results
+  })()
 
-    setFilteredCompanies(filtered)
-    setShowDropdown(filtered.length > 0)
+  // Compute dropdown visibility (derived state)
+  const shouldShowDropdown = filteredCompanies.length > 0 && query.trim() !== ''
+
+  // Sync dropdown state and reset selected index when filtered companies change
+  useEffect(() => {
+    if (shouldShowDropdown !== showDropdown) {
+      queueMicrotask(() => {
+        setShowDropdown(shouldShowDropdown)
+        setSelectedIndex(-1)
+      })
+    } else {
+      queueMicrotask(() => {
     setSelectedIndex(-1)
-  }, [query, companies, previousGuesses])
+      })
+    }
+  }, [shouldShowDropdown, showDropdown])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value)

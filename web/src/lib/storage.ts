@@ -43,14 +43,3 @@ export function loadGameState(): GameState | null {
   }
 }
 
-/**
- * Clear game state from localStorage
- */
-export function clearGameState(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch (error) {
-    console.error('Failed to clear game state:', error)
-  }
-}
-

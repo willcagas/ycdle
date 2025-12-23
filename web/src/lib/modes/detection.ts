@@ -1,5 +1,5 @@
 /**
- * Game mode utilities for development
+ * Game mode detection and management
  * 
  * Supports toggling between:
  * - "daily": Uses Netlify function to get deterministic daily company (production mode)
@@ -10,7 +10,7 @@
  * 2. localStorage: yc-game-mode (persists across sessions)
  */
 
-export type GameMode = 'daily' | 'unlimited';
+import type { GameMode } from './types'
 
 const STORAGE_KEY = 'yc-game-mode';
 
@@ -62,16 +62,16 @@ export function setGameMode(mode: GameMode): void {
 }
 
 /**
- * Check if we're in unlimited mode
- */
-export function isRandomMode(): boolean {
-  return getGameMode() === 'unlimited';
-}
-
-/**
  * Check if we're in daily mode
  */
 export function isDailyMode(): boolean {
   return getGameMode() === 'daily';
+}
+
+/**
+ * Check if we're in unlimited mode
+ */
+export function isUnlimitedMode(): boolean {
+  return getGameMode() === 'unlimited';
 }
 

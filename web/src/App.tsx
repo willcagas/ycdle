@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { loadCompaniesData } from './lib/dataLoader'
+import { loadCompaniesData } from './lib/data'
 import { useGameState } from './hooks/useGameState'
 import GuessInput from './components/GuessInput'
 import GameGrid from './components/GameGrid'
 import HelpModal from './components/HelpModal'
 import EndModal from './components/EndModal'
-import { getGameMode, setGameMode, isDailyMode, type GameMode } from './lib/gameMode'
+import { getGameMode, setGameMode, isDailyMode, type GameMode } from './lib/modes'
+import { ANIMATION_COMPLETE_DELAY_MS } from './lib/game'
 import './App.css'
 
 function App() {
@@ -14,7 +15,7 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(false)
   const [showEndModal, setShowEndModal] = useState(false)
-  const [gameMode, setGameModeState] = useState<GameMode>(getGameMode())
+  const [gameMode, setGameModeState] = useState<GameMode>(() => getGameMode())
   const [animationsComplete, setAnimationsComplete] = useState(false)
 
   useEffect(() => {
@@ -31,8 +32,6 @@ function App() {
 
   // Sync game mode state with URL/localStorage
   useEffect(() => {
-    setGameModeState(getGameMode())
-    
     // Listen for storage changes (in case mode is changed in another tab)
     const handleStorageChange = () => {
       setGameModeState(getGameMode())
@@ -59,27 +58,31 @@ function App() {
 
   // Show end modal when game ends, but wait for animations to complete
   useEffect(() => {
-    if (gameState.gameState) {
-      const isGameOver = gameState.gameState.gameStatus === 'won' || gameState.gameState.gameStatus === 'lost'
-      if (isGameOver) {
-        // Reset animations complete state when game ends
+    if (!gameState.gameState) return
+    
+    const isGameOver = gameState.gameState.gameStatus === 'won' || gameState.gameState.gameStatus === 'lost'
+    if (isGameOver) {
+      // Reset animations complete state when game ends (defer to avoid synchronous setState)
+      queueMicrotask(() => {
         setAnimationsComplete(false)
-        // Wait for tile flip animations to complete
-        // Each tile takes 1.0s to flip, with staggered delays (last tile starts at ~1.875s)
-        // Total animation time is approximately 2.875s, so wait 3s to be safe
-        const animationTimeout = setTimeout(() => {
-          setAnimationsComplete(true)
-          setShowEndModal(true)
-        }, 3000)
-        
-        return () => clearTimeout(animationTimeout)
-      } else {
-        // Reset modal state and animations complete when game is not over
+      })
+      // Wait for tile flip animations to complete
+      // Each tile takes 1.0s to flip, with staggered delays (last tile starts at ~1.875s)
+      // Total animation time is approximately 2.875s, so wait 3s to be safe
+      const animationTimeout = setTimeout(() => {
+        setAnimationsComplete(true)
+        setShowEndModal(true)
+      }, ANIMATION_COMPLETE_DELAY_MS)
+      
+      return () => clearTimeout(animationTimeout)
+    } else {
+      // Reset modal state and animations complete when game is not over (defer to avoid synchronous setState)
+      queueMicrotask(() => {
         setShowEndModal(false)
         setAnimationsComplete(false)
-      }
+      })
     }
-  }, [gameState.gameState?.gameStatus])
+  }, [gameState.gameState])
 
   if (loading || gameState.loadingDaily) {
     return (
@@ -123,7 +126,7 @@ function App() {
               </h1>
             </div>
             <p className="text-sm sm:text-base text-black mb-2 font-medium">
-              Test how well you know{' '}
+              Test how well you recognize{' '}
               <a
                 href="https://www.ycombinator.com/companies?top_company=true"
                 target="_blank"
@@ -151,9 +154,6 @@ function App() {
                 {gameMode === 'daily' ? '📅 Daily' : '♾️ Unlimited'}
               </button>
             </div>
-            {/* <p className="text-sm text-black opacity-70 ">
-              {data.data.count} companies • Version {data.data.version}
-            </p> */}
           </div>
           <div className="flex gap-2 flex-shrink-0">
             <button
@@ -217,7 +217,7 @@ function App() {
         {/* Footer */}
         <div className="mt-8 sm:mt-12 text-center px-2">
           <p className="text-xs sm:text-sm text-black opacity-60">
-            Not affiliated with YC
+            Not affiliated with Y Combinator
           </p>
         </div>
       </div>

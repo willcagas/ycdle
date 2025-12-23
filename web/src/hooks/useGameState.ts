@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { GameState, Company } from '../lib/types'
-import { initializeGame, initializeGameRandom, makeGuess as makeGuessEngine } from '../lib/gameEngine'
+import type { GameState } from '../lib/types'
+import type { Company } from '../lib/data'
+import { initializeGame, initializeGameRandom, makeGuess as makeGuessEngine } from '../lib/game'
 import { saveGameState, loadGameState } from '../lib/storage'
-import { fetchDailyCompanyId } from '../lib/dailyApi'
-import { getGameMode, isRandomMode } from '../lib/gameMode'
+import { getGameMode, isUnlimitedMode, fetchDailyCompanyId } from '../lib/modes'
+import { getUTCDayNumber } from '../lib/core'
+import { MILLISECONDS_PER_DAY } from '../lib/game/constants'
 
 interface UseGameStateOptions {
   companies: Company[];
@@ -12,70 +14,89 @@ interface UseGameStateOptions {
   datasetVersion: string;
 }
 
-/**
- * Get UTC day number (days since epoch) - matches server-side logic
- */
-function getUTCDayNumber(): number {
-  const now = new Date();
-  const utcDate = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate()
-  ));
-  return Math.floor(utcDate.getTime() / (1000 * 60 * 60 * 24));
-}
-
 export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGameStateOptions) {
   const [gameState, setGameState] = useState<GameState | null>(null)
-  const [loadingDaily, setLoadingDaily] = useState(true)
+  const initialMode = getGameMode()
+  const [loadingDaily, setLoadingDaily] = useState(() => initialMode === 'daily')
   const [dailyYcId, setDailyYcId] = useState<number | null>(null)
-  const [gameMode, setGameMode] = useState<'daily' | 'unlimited'>(getGameMode())
+  const [gameMode, setGameMode] = useState<'daily' | 'unlimited'>(() => initialMode)
 
   // Check game mode on mount
   useEffect(() => {
     const currentMode = getGameMode()
+    if (currentMode !== gameMode) {
+      queueMicrotask(() => {
     setGameMode(currentMode)
-  }, [])
+      })
+    }
+  }, [gameMode])
 
   // Fetch daily company ID (only in daily mode)
   useEffect(() => {
-    if (isRandomMode()) {
+    const currentMode = getGameMode()
+    if (currentMode !== 'daily') {
+      // In unlimited mode, loading is already false from initialization
+      if (loadingDaily) {
+        queueMicrotask(() => {
       setLoadingDaily(false)
+        })
+      }
       return
     }
 
+    let cancelled = false
     fetchDailyCompanyId()
       .then((id) => {
+        if (!cancelled) {
         setDailyYcId(id) // Will be null if function unavailable
         setLoadingDaily(false)
+        }
       })
       .catch(() => {
+        if (!cancelled) {
         setDailyYcId(null)
         setLoadingDaily(false)
+        }
       })
-  }, [gameMode])
+    
+    return () => {
+      cancelled = true
+    }
+  }, [gameMode, loadingDaily])
 
   // Initialize game
   useEffect(() => {
     if (companies.length === 0) return
 
     // In daily mode, wait for fetch to complete
-    if (!isRandomMode() && loadingDaily) return
+    if (!isUnlimitedMode() && loadingDaily) return
 
     const saved = loadGameState()
     
     // If daily mode but function unavailable, fall back to unlimited
-    const useRandom = isRandomMode() || (gameMode === 'daily' && dailyYcId === null)
+    const useRandom = isUnlimitedMode() || (gameMode === 'daily' && dailyYcId === null)
+    
+    // Use a flag to track if this effect should update state
+    let shouldUpdate = true
     
     if (useRandom) {
       // Unlimited mode
       if (saved && saved.datasetVersion === datasetVersion) {
+        // Defer state update to avoid synchronous setState in effect
+        queueMicrotask(() => {
+          if (shouldUpdate) {
         setGameState(saved)
+          }
+        })
       } else {
         try {
           const newState = initializeGameRandom(companies, datasetVersion)
+          queueMicrotask(() => {
+            if (shouldUpdate) {
           setGameState(newState)
           saveGameState(newState)
+            }
+          })
         } catch (error) {
           console.error('Failed to initialize game:', error)
         }
@@ -84,7 +105,7 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
       // Daily mode with valid ID
       const currentDayNumber = getUTCDayNumber()
       const savedDayNumber = saved?.startedAt 
-        ? Math.floor(new Date(saved.startedAt).getTime() / (1000 * 60 * 60 * 24))
+        ? Math.floor(new Date(saved.startedAt).getTime() / MILLISECONDS_PER_DAY)
         : null
       
       if (
@@ -93,16 +114,28 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
         saved.targetYcId === dailyYcId &&
         savedDayNumber === currentDayNumber
       ) {
+        queueMicrotask(() => {
+          if (shouldUpdate) {
         setGameState(saved)
+          }
+        })
       } else {
         try {
           const newState = initializeGame(companies, datasetVersion, byId, dailyYcId!)
+          queueMicrotask(() => {
+            if (shouldUpdate) {
           setGameState(newState)
           saveGameState(newState)
+            }
+          })
         } catch (error) {
           console.error('Failed to initialize game:', error)
         }
       }
+    }
+    
+    return () => {
+      shouldUpdate = false
     }
   }, [companies, datasetVersion, byId, dailyYcId, loadingDaily, gameMode])
 
@@ -111,11 +144,11 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
     (guessSlug: string) => {
       if (!gameState) return
 
-      const newState = makeGuessEngine(gameState, guessSlug, companies, bySlug)
+      const newState = makeGuessEngine(gameState, guessSlug)
       setGameState(newState)
       saveGameState(newState)
     },
-    [gameState, companies, bySlug]
+    [gameState]
   )
 
   // Start a new game
@@ -125,7 +158,7 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
       return
     }
     
-    if (isRandomMode()) {
+    if (isUnlimitedMode()) {
       // Unlimited mode
       try {
         const newState = initializeGameRandom(companies, datasetVersion)
@@ -152,7 +185,7 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
         }
       }
     }
-  }, [companies, datasetVersion, byId, gameMode])
+  }, [companies, datasetVersion, byId])
 
   // Get target company
   const getTargetCompany = useCallback((): Company | null => {

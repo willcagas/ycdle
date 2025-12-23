@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Company } from '../lib/types'
-import { getTileResults } from '../lib/gameEngine'
+import type { Company } from '../lib/data'
+import { getTileResults } from '../lib/game'
 import { normalizeBadgeForDisplay, filterRemoteRegions, normalizeRegionForDisplay } from '../utils/normalization'
 import Tile from './Tile'
 
@@ -9,7 +9,25 @@ interface GameGridProps {
   target: Company | null;
 }
 
+import { SLIDE_ANIMATION_DURATION_MS } from '../lib/game'
+
 const TILE_LABELS = ['Company', 'Batch', 'Industry', 'Status', 'Badges', 'Regions']
+
+// Render header row with category labels
+function renderHeader() {
+  return (
+    <div className="flex gap-1.5 sm:gap-2 mb-2">
+      {TILE_LABELS.map((label, colIndex) => (
+        <div
+          key={colIndex}
+          className="w-14 h-6 sm:w-20 sm:h-8 md:w-24 flex items-center justify-center text-xs sm:text-sm font-semibold text-black flex-shrink-0"
+        >
+          {label}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 // Get the display value for each tile based on the company and column index
 function getTileValue(company: Company, colIndex: number): string {
@@ -26,7 +44,7 @@ function getTileValue(company: Company, colIndex: number): string {
       return company.badges.length > 0 
         ? company.badges.map(badge => normalizeBadgeForDisplay(badge)).join(', ') 
         : 'None'
-    case 5: // Regions
+    case 5: { // Regions
       const filteredRegions = filterRemoteRegions(company.regions)
       if (filteredRegions.length === 0) return 'None'
       // Normalize each region and split by comma (for cases like "America / Canada" -> "US, Canada")
@@ -36,6 +54,7 @@ function getTileValue(company: Company, colIndex: number): string {
       // Remove duplicates while preserving order
       const uniqueParts = Array.from(new Set(normalizedParts))
       return uniqueParts.join(', ')
+    }
     default:
       return ''
   }
@@ -50,11 +69,14 @@ export default function GameGrid({ guesses, target }: GameGridProps) {
     if (guesses.length > prevGuessesLengthRef.current && prevGuessesLengthRef.current > 0) {
       // Mark all existing guesses (except the new one) as sliding
       const existingSlugs = guesses.slice(0, -1).map(g => g.slug)
+      // Defer state update to avoid synchronous setState in effect
+      queueMicrotask(() => {
       setSlidingRows(new Set(existingSlugs))
       // Reset after animation completes
       setTimeout(() => {
         setSlidingRows(new Set())
-      }, 600)
+      }, SLIDE_ANIMATION_DURATION_MS)
+      })
     }
     prevGuessesLengthRef.current = guesses.length
   }, [guesses.length, guesses])
@@ -62,43 +84,12 @@ export default function GameGrid({ guesses, target }: GameGridProps) {
   // Reverse guesses so newest appears at the top
   const reversedGuesses = [...guesses].reverse()
 
-  // If no target, show headers only
-  if (!target) {
+  // If no target or no guesses, show headers only
+  if (!target || reversedGuesses.length === 0) {
     return (
       <div className="w-full my-4 sm:my-8 overflow-x-auto">
         <div className="flex flex-col items-center gap-1.5 sm:gap-2 min-w-max mx-auto px-2 sm:px-0">
-        {/* Header row with category labels */}
-          <div className="flex gap-1.5 sm:gap-2 mb-2">
-          {TILE_LABELS.map((label, colIndex) => (
-            <div
-              key={colIndex}
-                className="w-14 h-6 sm:w-20 sm:h-8 md:w-24 flex items-center justify-center text-xs sm:text-sm font-semibold text-black flex-shrink-0"
-            >
-              {label}
-            </div>
-          ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // If no guesses, show headers only
-  if (reversedGuesses.length === 0) {
-    return (
-      <div className="w-full my-4 sm:my-8 overflow-x-auto">
-        <div className="flex flex-col items-center gap-1.5 sm:gap-2 min-w-max mx-auto px-2 sm:px-0">
-        {/* Header row with category labels */}
-          <div className="flex gap-1.5 sm:gap-2 mb-2">
-          {TILE_LABELS.map((label, colIndex) => (
-            <div
-              key={colIndex}
-                className="w-14 h-6 sm:w-20 sm:h-8 md:w-24 flex items-center justify-center text-xs sm:text-sm font-semibold text-black flex-shrink-0"
-            >
-              {label}
-            </div>
-          ))}
-          </div>
+          {renderHeader()}
         </div>
       </div>
     )
@@ -107,17 +98,7 @@ export default function GameGrid({ guesses, target }: GameGridProps) {
   return (
     <div className="w-full my-4 sm:my-8 overflow-x-auto">
       <div className="flex flex-col items-center gap-1.5 sm:gap-2 min-w-max mx-auto px-2 sm:px-0">
-      {/* Header row with category labels */}
-        <div className="flex gap-1.5 sm:gap-2 mb-2">
-        {TILE_LABELS.map((label, colIndex) => (
-          <div
-            key={colIndex}
-              className="w-14 h-6 sm:w-20 sm:h-8 md:w-24 flex items-center justify-center text-xs sm:text-sm font-semibold text-black flex-shrink-0"
-          >
-            {label}
-          </div>
-        ))}
-      </div>
+        {renderHeader()}
 
       {/* Guess rows - newest first */}
       {reversedGuesses.map((guess, rowIndex) => {

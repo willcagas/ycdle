@@ -11,6 +11,9 @@ import { join } from 'path';
 
 /**
  * Get UTC day number (days since epoch)
+ * 
+ * IMPORTANT: This logic MUST match web/src/lib/core/date.ts exactly.
+ * Any changes to this function must be reflected in the frontend code.
  */
 function getUTCDayNumber() {
   const now = new Date();
