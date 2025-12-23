@@ -108,12 +108,14 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
         ? Math.floor(new Date(saved.startedAt).getTime() / MILLISECONDS_PER_DAY)
         : null
       
-      if (
-        saved && 
+      // Check if saved state matches current daily game
+      // Use loose equality (==) to handle potential string/number type mismatches
+      const savedMatchesDaily = saved && 
         saved.datasetVersion === datasetVersion &&
-        saved.targetYcId === dailyYcId &&
+        (saved.targetYcId == dailyYcId || saved.targetYcId === dailyYcId) &&
         savedDayNumber === currentDayNumber
-      ) {
+      
+      if (savedMatchesDaily) {
         queueMicrotask(() => {
           if (shouldUpdate) {
         setGameState(saved)
@@ -130,6 +132,8 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
           })
         } catch (error) {
           console.error('Failed to initialize game:', error)
+          // Don't silently fail - rethrow to surface the error
+          throw error
         }
       }
     }
@@ -192,7 +196,8 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
     if (!gameState) return null
     // Prefer yc_id lookup, fallback to slug for backward compatibility
     if (gameState.targetYcId !== null && gameState.targetYcId !== undefined) {
-      return byId.get(gameState.targetYcId) || null
+      // Try lookup with number first, then string as fallback (handles type mismatches)
+      return byId.get(gameState.targetYcId) || byId.get(String(gameState.targetYcId)) || null
     }
     if (gameState.targetSlug) {
       return bySlug.get(gameState.targetSlug) || null

@@ -56,7 +56,11 @@ export function initializeGame(
     throw new Error('Cannot initialize game: companies array is empty')
   }
   
-  const target = byId.get(targetYcId)
+  // Try lookup with number first, then string as fallback (handles type mismatches)
+  let target = byId.get(targetYcId);
+  if (!target) {
+    target = byId.get(String(targetYcId));
+  }
   
   if (!target) {
     throw new Error(`Cannot initialize game: company with id ${targetYcId} not found`)
