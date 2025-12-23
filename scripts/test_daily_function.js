@@ -103,7 +103,7 @@ function getDailyCompanyId(seed, dayNumber) {
 // Run tests
 console.log('🧪 Testing Daily Function Determinism\n');
 
-const seed = process.env.YC_DAILY_SEED || 'yc-battle-v1';
+const seed = process.env.YC_DAILY_SEED || 'ycdle-v1';
 const today = getUTCDayNumber();
 
 console.log(`Seed: ${seed}`);

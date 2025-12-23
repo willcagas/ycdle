@@ -81,7 +81,7 @@ function loadCompaniesData() {
 export async function handler(event, context) {
   try {
     // Get seed from environment variable with safe default
-    const seed = process.env.YC_DAILY_SEED || 'yc-battle-v1';
+    const seed = process.env.YC_DAILY_SEED || 'ycdle-v1';
     
     // Compute UTC day number
     const utcDayNumber = getUTCDayNumber();

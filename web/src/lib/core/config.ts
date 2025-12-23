@@ -24,6 +24,6 @@ export function getDailySeed(): string {
   // Only used in Netlify function, but documented here
   // In browser context, this will always return the default
   // The Netlify function reads: process.env.YC_DAILY_SEED || 'yc-battle-v1'
-  return 'yc-battle-v1';
+  return 'ydle-v1';
 }
 
