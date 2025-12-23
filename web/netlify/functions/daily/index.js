@@ -95,7 +95,19 @@ export async function handler(event, context) {
     }
     
     // Compute UTC day number
-    const utcDayNumber = getUTCDayNumber();
+    let utcDayNumber = getUTCDayNumber();
+    
+    // Check if debug mode is enabled
+    const isDebugMode = event.queryStringParameters?.debug === '1';
+    
+    // TEMPORARY: Allow day_offset in debug mode only (for testing UTC midnight flip)
+    // This simulates different days without waiting for actual UTC midnight
+    if (isDebugMode && event.queryStringParameters?.day_offset !== undefined) {
+      const dayOffset = parseInt(event.queryStringParameters.day_offset, 10);
+      if (!isNaN(dayOffset)) {
+        utcDayNumber += dayOffset;
+      }
+    }
     
     // Load companies data
     const data = loadCompaniesData();
@@ -135,9 +147,6 @@ export async function handler(event, context) {
         body: JSON.stringify({ error: 'Failed to select company' }),
       };
     }
-    
-    // Check if debug mode is enabled
-    const isDebugMode = event.queryStringParameters?.debug === '1';
     
     // Calculate cache expiration (time until next UTC midnight)
     const now = new Date();
@@ -183,6 +192,9 @@ export async function handler(event, context) {
             computed_index: index,
             selected_yc_id: selectedCompany.id,
             seconds_until_midnight: secondsUntilMidnight,
+            day_offset_applied: isDebugMode && event.queryStringParameters?.day_offset !== undefined 
+              ? parseInt(event.queryStringParameters.day_offset, 10) 
+              : null,
           },
         }
       : {
