@@ -81,7 +81,7 @@ function loadCompaniesData() {
 export async function handler(event, context) {
   try {
     // Get seed from environment variable with safe default
-    const seed = process.env.YC_DAILY_SEED || 'ycdle-v1';
+    const seed = process.env.YC_DAILY_SEED;
 
     // If seed is not set, return an error
     if (!seed) {
@@ -147,6 +147,23 @@ export async function handler(event, context) {
     
     // Extract yc_id from the selected company (single source of truth)
     const selectedYcId = selectedCompany.id;
+    
+    // ============================================
+    // DEBUG LOGGING - REMOVE WHEN FIXED
+    // ============================================
+    console.log('[DAILY FUNCTION DEBUG]', {
+      seed,
+      utcDayNumber,
+      topCompaniesLength: topCompanies.length,
+      computedIndex,
+      selectedCompany: {
+        id: selectedCompany.id,
+        name: selectedCompany.name,
+        idType: typeof selectedCompany.id,
+      },
+      selectedYcId,
+      selectedYcIdType: typeof selectedYcId,
+    });
     // ============================================
     
     // ============================================
@@ -165,24 +182,52 @@ export async function handler(event, context) {
     ));
     const secondsUntilMidnight = Math.floor((nextMidnight.getTime() - now.getTime()) / 1000);
     
-    // Build response body - both debug and non-debug use the SAME selectedYcId
-    // This ensures they always return the same yc_id value
+    // ============================================
+    // CRITICAL: Build response body - both paths MUST use the exact same selectedYcId
+    // ============================================
+    // Force both paths to use the exact same value - no room for error
+    const yc_id = Number(selectedYcId); // Ensure it's a number
+    
+    // Validate that selectedCompany.id matches what we're returning
+    if (selectedCompany.id !== yc_id && Number(selectedCompany.id) !== yc_id) {
+      console.error('[DAILY FUNCTION ERROR] ID mismatch!', {
+        selectedCompany_id: selectedCompany.id,
+        selectedCompany_idType: typeof selectedCompany.id,
+        yc_id,
+        yc_idType: typeof yc_id,
+      });
+    }
+    
+    // Build base response with yc_id - this is the SINGLE SOURCE OF TRUTH
+    const baseResponse = {
+      yc_id: yc_id,
+    };
+    
+    // Add debug fields if needed, but yc_id comes from baseResponse
     const responseBody = isDebugMode
       ? {
-          // Non-debug response shape: yc_id from selectedCompany
-          yc_id: selectedYcId,
-          // Debug fields are additional information only
+          ...baseResponse, // Spread to ensure we use the exact same yc_id
           debug: {
             seed: seed,
             utc_day_number: utcDayNumber,
-            computed_index: computedIndex, // Index into topCompanies array
-            selected_yc_id: selectedYcId, // Same as yc_id above
+            computed_index: computedIndex,
+            selected_yc_id: yc_id, // Same as baseResponse.yc_id
           },
         }
-      : {
-          // Non-debug response: same yc_id as debug mode
-          yc_id: selectedYcId,
-        };
+      : baseResponse; // Non-debug: use baseResponse directly
+    
+    // ============================================
+    // DEBUG LOGGING - REMOVE WHEN FIXED
+    // ============================================
+    console.log('[DAILY FUNCTION DEBUG] Response body:', {
+      isDebugMode,
+      selectedYcId_original: selectedYcId,
+      yc_id_final: yc_id,
+      responseBody_yc_id: responseBody.yc_id,
+      match: responseBody.yc_id === yc_id,
+      responseBody: JSON.stringify(responseBody),
+    });
+    // ============================================
     
     return {
       statusCode: 200,
