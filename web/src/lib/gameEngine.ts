@@ -170,7 +170,34 @@ export function checkLoss(guesses: string[]): boolean {
 }
 
 /**
- * Initialize a new game with a target company by yc_id
+ * Initialize a new game with a random target (development mode)
+ */
+export function initializeGameRandom(
+  companies: Company[],
+  datasetVersion: string
+): GameState {
+  if (companies.length === 0) {
+    throw new Error('Cannot initialize game: companies array is empty')
+  }
+  const randomIndex = Math.floor(Math.random() * companies.length)
+  const target = companies[randomIndex]
+
+  if (!target) {
+    throw new Error('Cannot initialize game: failed to select target company')
+  }
+
+  return {
+    targetYcId: typeof target.id === 'number' ? target.id : null,
+    targetSlug: target.slug,
+    guesses: [],
+    gameStatus: 'in-progress',
+    startedAt: new Date().toISOString(),
+    datasetVersion,
+  }
+}
+
+/**
+ * Initialize a new game with a target company by yc_id (daily mode)
  */
 export function initializeGame(
   companies: Company[],

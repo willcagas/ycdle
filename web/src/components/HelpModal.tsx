@@ -1,4 +1,5 @@
 import ColorLegend from './ColorLegend'
+import DailyCountdown from './DailyCountdown'
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -15,7 +16,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg p-6 max-w-xl w-full mx-4 border-2 border-yc-orange max-h-[95vh] overflow-y-auto"
+        className="bg-white rounded-lg p-6 max-w-xl w-full mx-4 border-2 border-yc-orange max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-2xl font-bold mb-4 text-black text-left">
@@ -52,6 +53,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
               </div>
             </div>
           </div>
+          <DailyCountdown />
         </div>
         <button
           onClick={onClose}

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { GameState, Company } from '../lib/types'
-import { initializeGame, makeGuess as makeGuessEngine } from '../lib/gameEngine'
+import { initializeGame, initializeGameRandom, makeGuess as makeGuessEngine } from '../lib/gameEngine'
 import { saveGameState, loadGameState } from '../lib/storage'
 import { fetchDailyCompanyId } from '../lib/dailyApi'
+import { getGameMode, isRandomMode } from '../lib/gameMode'
 
 interface UseGameStateOptions {
   companies: Company[];
@@ -28,54 +29,82 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [loadingDaily, setLoadingDaily] = useState(true)
   const [dailyYcId, setDailyYcId] = useState<number | null>(null)
+  const [gameMode, setGameMode] = useState<'daily' | 'random'>(getGameMode())
 
-  // Fetch daily company ID
+  // Check game mode on mount
   useEffect(() => {
-    fetchDailyCompanyId()
-      .then((id) => {
-        setDailyYcId(id)
-        setLoadingDaily(false)
-      })
-      .catch((error) => {
-        console.error('Failed to fetch daily company ID:', error)
-        setLoadingDaily(false)
-        // Fallback: we'll handle this in the game initialization
-      })
+    const currentMode = getGameMode()
+    setGameMode(currentMode)
   }, [])
 
-  // Initialize game once we have companies and daily ID
+  // Fetch daily company ID (only in daily mode)
   useEffect(() => {
-    // Don't initialize if companies array is empty or we're still loading
-    if (companies.length === 0 || loadingDaily || dailyYcId === null) {
+    if (isRandomMode()) {
+      setLoadingDaily(false)
       return
     }
 
+    fetchDailyCompanyId()
+      .then((id) => {
+        setDailyYcId(id) // Will be null if function unavailable
+        setLoadingDaily(false)
+      })
+      .catch(() => {
+        setDailyYcId(null)
+        setLoadingDaily(false)
+      })
+  }, [gameMode])
+
+  // Initialize game
+  useEffect(() => {
+    if (companies.length === 0) return
+
+    // In daily mode, wait for fetch to complete
+    if (!isRandomMode() && loadingDaily) return
+
     const saved = loadGameState()
-    const currentDayNumber = getUTCDayNumber()
-    const savedDayNumber = saved?.startedAt 
-      ? Math.floor(new Date(saved.startedAt).getTime() / (1000 * 60 * 60 * 24))
-      : null
     
-    // Check if saved game is for today's company and same dataset version
-    if (
-      saved && 
-      saved.datasetVersion === datasetVersion &&
-      saved.targetYcId === dailyYcId &&
-      savedDayNumber === currentDayNumber
-    ) {
-      // Restore saved game for today
-      setGameState(saved)
+    // If daily mode but function unavailable, fall back to random
+    const useRandom = isRandomMode() || (gameMode === 'daily' && dailyYcId === null)
+    
+    if (useRandom) {
+      // Random mode
+      if (saved && saved.datasetVersion === datasetVersion) {
+        setGameState(saved)
+      } else {
+        try {
+          const newState = initializeGameRandom(companies, datasetVersion)
+          setGameState(newState)
+          saveGameState(newState)
+        } catch (error) {
+          console.error('Failed to initialize game:', error)
+        }
+      }
     } else {
-      // Start new game with today's company
-      try {
-        const newState = initializeGame(companies, datasetVersion, byId, dailyYcId)
-        setGameState(newState)
-        saveGameState(newState)
-      } catch (error) {
-        console.error('Failed to initialize game:', error)
+      // Daily mode with valid ID
+      const currentDayNumber = getUTCDayNumber()
+      const savedDayNumber = saved?.startedAt 
+        ? Math.floor(new Date(saved.startedAt).getTime() / (1000 * 60 * 60 * 24))
+        : null
+      
+      if (
+        saved && 
+        saved.datasetVersion === datasetVersion &&
+        saved.targetYcId === dailyYcId &&
+        savedDayNumber === currentDayNumber
+      ) {
+        setGameState(saved)
+      } else {
+        try {
+          const newState = initializeGame(companies, datasetVersion, byId, dailyYcId!)
+          setGameState(newState)
+          saveGameState(newState)
+        } catch (error) {
+          console.error('Failed to initialize game:', error)
+        }
       }
     }
-  }, [companies, datasetVersion, byId, dailyYcId, loadingDaily])
+  }, [companies, datasetVersion, byId, dailyYcId, loadingDaily, gameMode])
 
   // Make a guess
   const makeGuess = useCallback(
@@ -89,27 +118,41 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
     [gameState, companies, bySlug]
   )
 
-  // Start a new game (re-fetch daily ID to ensure we have today's company)
+  // Start a new game
   const startNewGame = useCallback(async () => {
     if (companies.length === 0) {
       console.error('Cannot start new game: companies array is empty')
       return
     }
-    try {
-      const ycId = await fetchDailyCompanyId()
-      const newState = initializeGame(companies, datasetVersion, byId, ycId)
-      setGameState(newState)
-      saveGameState(newState)
-    } catch (error) {
-      console.error('Failed to start new game:', error)
-      // Fallback to using current dailyYcId if available
-      if (dailyYcId !== null) {
-        const newState = initializeGame(companies, datasetVersion, byId, dailyYcId)
+    
+    if (isRandomMode()) {
+      // Random mode
+      try {
+        const newState = initializeGameRandom(companies, datasetVersion)
         setGameState(newState)
         saveGameState(newState)
+      } catch (error) {
+        console.error('Failed to start new game:', error)
+      }
+    } else {
+      // Daily mode
+      const ycId = await fetchDailyCompanyId()
+      if (ycId === null) {
+        // Fallback to random if function unavailable
+        const newState = initializeGameRandom(companies, datasetVersion)
+        setGameState(newState)
+        saveGameState(newState)
+      } else {
+        try {
+          const newState = initializeGame(companies, datasetVersion, byId, ycId)
+          setGameState(newState)
+          saveGameState(newState)
+        } catch (error) {
+          console.error('Failed to start new game:', error)
+        }
       }
     }
-  }, [companies, datasetVersion, byId, dailyYcId])
+  }, [companies, datasetVersion, byId, gameMode])
 
   // Get target company
   const getTargetCompany = useCallback((): Company | null => {

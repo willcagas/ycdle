@@ -34,6 +34,29 @@ function hashSeedAndDay(seed, dayNumber) {
 }
 
 /**
+ * Normalize text: strip, collapse whitespace, remove newlines/tabs
+ * This matches the frontend's normalizeText function exactly
+ */
+function normalizeText(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/\s+/g, ' ') // Replace all whitespace with single space
+    .replace(/[\n\t\r]/g, '') // Remove newlines, tabs, carriage returns
+    .trim();
+}
+
+/**
+ * Ensure a value is an array
+ * This matches the frontend's ensureArray function
+ */
+function ensureArray(value) {
+  if (value === null || value === undefined) return [];
+  if (typeof value === 'string' && value === '') return [];
+  if (Array.isArray(value)) return value;
+  return [value];
+}
+
+/**
  * Load companies data
  */
 function loadCompaniesData() {
@@ -64,10 +87,13 @@ export async function handler(event, context) {
     const data = loadCompaniesData();
     
     // Filter to only top companies (same logic as frontend)
+    // Must match the exact normalization used in web/src/lib/dataLoader.ts
     const topCompanies = data.companies.filter((company) => {
-      const badges = Array.isArray(company.badges) ? company.badges : [];
-      return badges.some((badge) => 
-        String(badge).toLowerCase().trim() === 'topcompany'
+      const rawBadges = ensureArray(company.badges);
+      // Check if company has "topCompany" in its badges array (case-insensitive)
+      // This matches: normalizeText(badge).toLowerCase() === 'topcompany'
+      return rawBadges.some((badge) => 
+        normalizeText(badge).toLowerCase() === 'topcompany'
       );
     });
     

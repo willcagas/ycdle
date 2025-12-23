@@ -5,6 +5,7 @@ import GuessInput from './components/GuessInput'
 import GameGrid from './components/GameGrid'
 import HelpModal from './components/HelpModal'
 import EndModal from './components/EndModal'
+import { getGameMode, setGameMode, isDailyMode, type GameMode } from './lib/gameMode'
 import './App.css'
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(false)
   const [showEndModal, setShowEndModal] = useState(false)
+  const [gameMode, setGameModeState] = useState<GameMode>(getGameMode())
 
   useEffect(() => {
     loadCompaniesData()
@@ -24,6 +26,18 @@ function App() {
         setError(err.message)
         setLoading(false)
       })
+  }, [])
+
+  // Sync game mode state with URL/localStorage
+  useEffect(() => {
+    setGameModeState(getGameMode())
+    
+    // Listen for storage changes (in case mode is changed in another tab)
+    const handleStorageChange = () => {
+      setGameModeState(getGameMode())
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
   const gameState = useGameState(
@@ -115,6 +129,23 @@ function App() {
               </a>
               .
             </p>
+            {/* Dev mode indicator */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-black opacity-50">Mode:</span>
+              <button
+                onClick={() => {
+                  const newMode: GameMode = gameMode === 'daily' ? 'random' : 'daily'
+                  setGameMode(newMode)
+                  setGameModeState(newMode)
+                  // Force reload to reinitialize game
+                  window.location.reload()
+                }}
+                className="text-xs px-2 py-1 rounded border border-yc-orange text-yc-orange hover:bg-yc-orange hover:text-white transition-colors"
+                title="Toggle between daily (deterministic) and random (dev) mode"
+              >
+                {gameMode === 'daily' ? '📅 Daily' : '🎲 Random'}
+              </button>
+            </div>
             {/* <p className="text-sm text-black opacity-70 ">
               {data.data.count} companies • Version {data.data.version}
             </p> */}
@@ -126,12 +157,14 @@ function App() {
             >
               Help
             </button>
-            <button
-              onClick={startNewGame}
-              className="px-4 py-2 bg-yc-orange text-white rounded-lg hover:opacity-90 transition-opacity"
-            >
-              New Game
-            </button>
+            {!isDailyMode() && (
+              <button
+                onClick={startNewGame}
+                className="px-4 py-2 bg-yc-orange text-white rounded-lg hover:opacity-90 transition-opacity"
+              >
+                New Game
+              </button>
+            )}
           </div>
         </div>
 

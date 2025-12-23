@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Company } from '../lib/types'
 import { getTileResults, MAX_GUESSES } from '../lib/gameEngine'
+import { isDailyMode } from '../lib/gameMode'
 import CompanyReveal from './CompanyReveal'
 
 interface EndModalProps {
@@ -68,15 +69,17 @@ export default function EndModal({
         </div>
 
         <div className="flex gap-2">
-          <button
-            onClick={onNewGame}
-            className="flex-1 px-4 py-2 bg-white border-2 border-yc-orange text-yc-orange rounded-lg hover:bg-yc-orange hover:text-white transition-colors"
-          >
-            New Game
-          </button>
+          {!isDailyMode() && (
+            <button
+              onClick={onNewGame}
+              className="flex-1 px-4 py-2 bg-white border-2 border-yc-orange text-yc-orange rounded-lg hover:bg-yc-orange hover:text-white transition-colors"
+            >
+              New Game
+            </button>
+          )}
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-white border-2 border-yc-orange text-yc-orange rounded-lg hover:bg-yc-orange hover:text-white transition-colors"
+            className={isDailyMode() ? "w-full px-4 py-2 bg-white border-2 border-yc-orange text-yc-orange rounded-lg hover:bg-yc-orange hover:text-white transition-colors" : "flex-1 px-4 py-2 bg-white border-2 border-yc-orange text-yc-orange rounded-lg hover:bg-yc-orange hover:text-white transition-colors"}
           >
             Close
           </button>
