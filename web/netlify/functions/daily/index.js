@@ -5,9 +5,9 @@
  * Route: /.netlify/functions/daily
  */
 
-const { createHash } = require('crypto');
-const { readFileSync } = require('fs');
-const { join } = require('path');
+import { createHash } from 'crypto';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 /**
  * Get UTC day number (days since epoch)
@@ -37,40 +37,22 @@ function hashSeedAndDay(seed, dayNumber) {
  * Load companies data
  */
 function loadCompaniesData() {
-  // Try multiple possible paths for the data file
-  const possiblePaths = [
-    join(process.cwd(), 'data', 'yc_companies.json'), // Repo root (most common)
-  ];
-
-  // Add __dirname path if available
-  if (typeof __dirname !== 'undefined') {
-    possiblePaths.push(join(__dirname, '..', '..', 'data', 'yc_companies.json'));
+  try {
+    // Try to load from data directory (relative to function location)
+    // In Netlify, functions run from the repo root
+    const dataPath = join(process.cwd(), 'data', 'yc_companies.json');
+    const rawData = readFileSync(dataPath, 'utf-8');
+    return JSON.parse(rawData);
+  } catch (error) {
+    console.error('Failed to load companies data:', error);
+    throw new Error('Failed to load companies data');
   }
-
-  // Add Netlify-specific paths
-  possiblePaths.push(join('/opt', 'netlify', 'build', 'data', 'yc_companies.json'));
-
-  for (const dataPath of possiblePaths) {
-    try {
-      const rawData = readFileSync(dataPath, 'utf-8');
-      console.log(`Successfully loaded data from: ${dataPath}`);
-      return JSON.parse(rawData);
-    } catch (error) {
-      // Try next path
-      continue;
-    }
-  }
-
-  // If all paths failed, throw error with details
-  console.error('Failed to load companies data from any path:', possiblePaths);
-  console.error('Current working directory:', process.cwd());
-  throw new Error('Failed to load companies data: file not found in any expected location');
 }
 
 /**
  * Netlify Function Handler
  */
-exports.handler = async function(event, context) {
+export async function handler(event, context) {
   try {
     // Get seed from environment variable with safe default
     const seed = process.env.YC_DAILY_SEED || 'yc-battle-v1';
