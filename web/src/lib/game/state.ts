@@ -56,6 +56,27 @@ export function initializeGame(
     throw new Error('Cannot initialize game: companies array is empty')
   }
   
+  // ============================================
+  // DEBUG LOG 2: Confirm how we're selecting the company
+  // ============================================
+  // Check if we're accidentally using yc_id as array index
+  const companyByIndex = companies[targetYcId];
+  console.log('[DEBUG] Company lookup methods:', {
+    yc_id: targetYcId,
+    'companies[yc_id] (WRONG - using as index)': companyByIndex 
+      ? { id: companyByIndex.id, name: companyByIndex.name }
+      : 'undefined (out of bounds)',
+    'byId.get(yc_id) (CORRECT - using as ID)': (() => {
+      const found = byId.get(targetYcId) || byId.get(String(targetYcId));
+      return found ? { id: found.id, name: found.name } : 'NOT FOUND';
+    })(),
+    'companies.find(c => c.id === yc_id)': (() => {
+      const found = companies.find(c => c.id === targetYcId);
+      return found ? { id: found.id, name: found.name } : 'NOT FOUND';
+    })(),
+  });
+  // ============================================
+  
   // Try lookup with number first, then string as fallback (handles type mismatches)
   let target = byId.get(targetYcId);
   if (!target) {
@@ -65,6 +86,19 @@ export function initializeGame(
   if (!target) {
     throw new Error(`Cannot initialize game: company with id ${targetYcId} not found`)
   }
+
+  // ============================================
+  // DEBUG LOG 3: Confirm what we ultimately use
+  // ============================================
+  console.log('[DEBUG] Final selected company:', {
+    yc_id: targetYcId,
+    selected_company: {
+      id: target.id,
+      name: target.name,
+      slug: target.slug,
+    },
+  });
+  // ============================================
 
   return {
     targetYcId: targetYcId,

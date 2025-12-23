@@ -124,6 +124,22 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
       } else {
         try {
           const newState = initializeGame(companies, datasetVersion, byId, dailyYcId!)
+          
+          // ============================================
+          // DEBUG LOG 3: Confirm what we ultimately render
+          // ============================================
+          const finalCompany = newState.targetYcId !== null 
+            ? (byId.get(newState.targetYcId) || byId.get(String(newState.targetYcId)))
+            : null;
+          console.log('[DEBUG] Setting game state with company:', {
+            state_targetYcId: newState.targetYcId,
+            state_targetSlug: newState.targetSlug,
+            resolved_company: finalCompany 
+              ? { id: finalCompany.id, name: finalCompany.name }
+              : 'NOT FOUND IN byId MAP',
+          });
+          // ============================================
+          
           queueMicrotask(() => {
             if (shouldUpdate) {
           setGameState(newState)
@@ -182,6 +198,22 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
       } else {
         try {
           const newState = initializeGame(companies, datasetVersion, byId, ycId)
+          
+          // ============================================
+          // DEBUG LOG 3: Confirm what we ultimately render (startNewGame path)
+          // ============================================
+          const finalCompany = newState.targetYcId !== null 
+            ? (byId.get(newState.targetYcId) || byId.get(String(newState.targetYcId)))
+            : null;
+          console.log('[DEBUG] startNewGame - Setting game state with company:', {
+            state_targetYcId: newState.targetYcId,
+            state_targetSlug: newState.targetSlug,
+            resolved_company: finalCompany 
+              ? { id: finalCompany.id, name: finalCompany.name }
+              : 'NOT FOUND IN byId MAP',
+          });
+          // ============================================
+          
           setGameState(newState)
           saveGameState(newState)
         } catch (error) {
@@ -197,7 +229,21 @@ export function useGameState({ companies, bySlug, byId, datasetVersion }: UseGam
     // Prefer yc_id lookup, fallback to slug for backward compatibility
     if (gameState.targetYcId !== null && gameState.targetYcId !== undefined) {
       // Try lookup with number first, then string as fallback (handles type mismatches)
-      return byId.get(gameState.targetYcId) || byId.get(String(gameState.targetYcId)) || null
+      const company = byId.get(gameState.targetYcId) || byId.get(String(gameState.targetYcId)) || null
+      
+      // ============================================
+      // DEBUG LOG 3: Confirm what we ultimately render (getTargetCompany)
+      // ============================================
+      console.log('[DEBUG] getTargetCompany - Resolving company for render:', {
+        gameState_targetYcId: gameState.targetYcId,
+        gameState_targetSlug: gameState.targetSlug,
+        resolved_company: company 
+          ? { id: company.id, name: company.name }
+          : 'NOT FOUND',
+      });
+      // ============================================
+      
+      return company
     }
     if (gameState.targetSlug) {
       return bySlug.get(gameState.targetSlug) || null

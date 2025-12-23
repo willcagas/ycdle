@@ -18,13 +18,28 @@ export interface DailyResponse {
  */
 export async function fetchDailyCompanyId(): Promise<number | null> {
   try {
-    const response = await fetch(API_PATHS.DAILY_FUNCTION);
+    const url = API_PATHS.DAILY_FUNCTION;
+    console.log('[DEBUG] Fetching daily company:', { url });
+    
+    const response = await fetch(url);
     
     if (!response.ok) {
       return null; // Function unavailable
     }
     
     const data: DailyResponse = await response.json();
+    
+    // ============================================
+    // DEBUG LOG 1: Confirm fetch URL + response
+    // ============================================
+    console.log('[DEBUG] Daily endpoint response:', {
+      url,
+      rawResponse: JSON.stringify(data),
+      yc_id: data.yc_id,
+      yc_id_type: typeof data.yc_id,
+      yc_id_is_number: typeof data.yc_id === 'number',
+    });
+    // ============================================
     
     if (typeof data.yc_id === 'number') {
       return data.yc_id;
