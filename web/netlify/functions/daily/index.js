@@ -121,10 +121,19 @@ export async function handler(event, context) {
       };
     }
     
-    // Generate deterministic index
+    // ============================================
+    // SINGLE SOURCE OF TRUTH: Compute selection exactly once
+    // ============================================
+    // Generate deterministic hash from seed and day number
     const hashValue = hashSeedAndDay(seed, utcDayNumber);
-    const index = hashValue % topCompanies.length;
-    const selectedCompany = topCompanies[index];
+    
+    // Compute index into the filtered topCompanies array
+    // IMPORTANT: This index is ONLY valid for the topCompanies array
+    const computedIndex = hashValue % topCompanies.length;
+    
+    // Select company from the filtered topCompanies array using computedIndex
+    // This is the ONLY place where selection happens
+    const selectedCompany = topCompanies[computedIndex];
     
     if (!selectedCompany || !selectedCompany.id) {
       return {
@@ -135,6 +144,10 @@ export async function handler(event, context) {
         body: JSON.stringify({ error: 'Failed to select company' }),
       };
     }
+    
+    // Extract yc_id from the selected company (single source of truth)
+    const selectedYcId = selectedCompany.id;
+    // ============================================
     
     // ============================================
     // TEMPORARY DEBUG MODE - REMOVE WHEN DONE
@@ -152,19 +165,23 @@ export async function handler(event, context) {
     ));
     const secondsUntilMidnight = Math.floor((nextMidnight.getTime() - now.getTime()) / 1000);
     
-    // Return only yc_id (or debug info if debug mode is enabled)
+    // Build response body - both debug and non-debug use the SAME selectedYcId
+    // This ensures they always return the same yc_id value
     const responseBody = isDebugMode
       ? {
-          yc_id: selectedCompany.id,
+          // Non-debug response shape: yc_id from selectedCompany
+          yc_id: selectedYcId,
+          // Debug fields are additional information only
           debug: {
             seed: seed,
             utc_day_number: utcDayNumber,
-            computed_index: index,
-            selected_yc_id: selectedCompany.id,
+            computed_index: computedIndex, // Index into topCompanies array
+            selected_yc_id: selectedYcId, // Same as yc_id above
           },
         }
       : {
-          yc_id: selectedCompany.id,
+          // Non-debug response: same yc_id as debug mode
+          yc_id: selectedYcId,
         };
     
     return {
