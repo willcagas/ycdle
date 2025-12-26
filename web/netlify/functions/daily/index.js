@@ -9,36 +9,13 @@ import { createHash } from 'crypto';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-interface Company {
-  id: number;
-  badges?: string | string[];
-  [key: string]: unknown;
-}
-
-interface CompaniesData {
-  companies: Company[];
-  [key: string]: unknown;
-}
-
-interface DailyResponse {
-  yc_id: number;
-  debug?: {
-    seed: string;
-    utc_day_number: number;
-    computed_index: number;
-    selected_yc_id: number;
-    seconds_until_midnight: number;
-    day_offset_applied: number | null;
-  };
-}
-
 /**
  * Get UTC day number (days since epoch)
  * 
  * IMPORTANT: This logic MUST match web/src/lib/core/date.ts exactly.
  * Any changes to this function must be reflected in the frontend code.
  */
-function getUTCDayNumber(): number {
+function getUTCDayNumber() {
   const now = new Date();
   const utcDate = new Date(Date.UTC(
     now.getUTCFullYear(),
@@ -52,7 +29,7 @@ function getUTCDayNumber(): number {
 /**
  * Create a deterministic hash from seed and day number
  */
-function hashSeedAndDay(seed: string, dayNumber: number): number {
+function hashSeedAndDay(seed, dayNumber) {
   const input = `${seed}:${dayNumber}`;
   const hash = createHash('sha256').update(input).digest('hex');
   // Convert first 8 hex characters to a number for consistent indexing
@@ -63,7 +40,7 @@ function hashSeedAndDay(seed: string, dayNumber: number): number {
  * Normalize text: strip, collapse whitespace, remove newlines/tabs
  * This matches the frontend's normalizeText function exactly
  */
-function normalizeText(text: unknown): string {
+function normalizeText(text) {
   if (!text) return '';
   return String(text)
     .replace(/\s+/g, ' ') // Replace all whitespace with single space
@@ -75,7 +52,7 @@ function normalizeText(text: unknown): string {
  * Ensure a value is an array
  * This matches the frontend's ensureArray function
  */
-function ensureArray(value: unknown): unknown[] {
+function ensureArray(value) {
   if (value === null || value === undefined) return [];
   if (typeof value === 'string' && value === '') return [];
   if (Array.isArray(value)) return value;
@@ -85,13 +62,13 @@ function ensureArray(value: unknown): unknown[] {
 /**
  * Load companies data
  */
-function loadCompaniesData(): CompaniesData {
+function loadCompaniesData() {
   try {
     // Try to load from data directory (relative to function location)
     // In Netlify, functions run from the repo root
     const dataPath = join(process.cwd(), 'data', 'yc_companies.json');
     const rawData = readFileSync(dataPath, 'utf-8');
-    return JSON.parse(rawData) as CompaniesData;
+    return JSON.parse(rawData);
   } catch (error) {
     console.error('Failed to load companies data:', error);
     throw new Error('Failed to load companies data');
@@ -101,14 +78,7 @@ function loadCompaniesData(): CompaniesData {
 /**
  * Netlify Function Handler
  */
-export async function handler(event: {
-  httpMethod: string;
-  queryStringParameters?: { debug?: string; day_offset?: string };
-}): Promise<{
-  statusCode: number;
-  headers: Record<string, string>;
-  body: string;
-}> {
+export async function handler(event, context) {
   try {
     // Get seed from environment variable with safe default
     const seed = process.env.YC_DAILY_SEED || 'ycdle-v1';
@@ -192,7 +162,7 @@ export async function handler(event: {
     const seedHash = createHash('sha256').update(seed).digest('hex').substring(0, 8);
     
     // Prepare response headers
-    const headers: Record<string, string> = {
+    const headers = {
       'Content-Type': 'application/json',
       'X-YCDLE-Day': utcDayNumber.toString(),
       'X-YCDLE-Seed-Hash': seedHash,
@@ -213,7 +183,7 @@ export async function handler(event: {
     }
     
     // Return only yc_id (or debug info if debug mode is enabled)
-    const responseBody: DailyResponse = isDebugMode
+    const responseBody = isDebugMode
       ? {
           yc_id: selectedCompany.id,
           debug: {
@@ -222,7 +192,7 @@ export async function handler(event: {
             computed_index: index,
             selected_yc_id: selectedCompany.id,
             seconds_until_midnight: secondsUntilMidnight,
-            day_offset_applied: event.queryStringParameters?.day_offset !== undefined 
+            day_offset_applied: isDebugMode && event.queryStringParameters?.day_offset !== undefined 
               ? parseInt(event.queryStringParameters.day_offset, 10) 
               : null,
           },
@@ -247,3 +217,4 @@ export async function handler(event: {
     };
   }
 }
+

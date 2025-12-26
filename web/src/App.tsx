@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
 import { loadCompaniesData } from './lib/data'
 import { useGameState } from './hooks/useGameState'
-import { useYcdleSolves } from './hooks/useYcdleSolves'
 import GuessInput from './components/GuessInput'
 import GameGrid from './components/GameGrid'
 import HelpModal from './components/HelpModal'
 import EndModal from './components/EndModal'
-import DailySolveCount from './components/DailySolveCount'
 import { getGameMode, setGameMode, isDailyMode, type GameMode } from './lib/modes'
 import { ANIMATION_COMPLETE_DELAY_MS } from './lib/game'
 import './App.css'
@@ -58,21 +56,12 @@ function App() {
         }
   )
 
-  // Track daily solve count (only in daily mode)
-  const ycdleSolves = useYcdleSolves()
-
   // Show end modal when game ends, but wait for animations to complete
-  // Also record win in daily mode
   useEffect(() => {
     if (!gameState.gameState) return
     
     const isGameOver = gameState.gameState.gameStatus === 'won' || gameState.gameState.gameStatus === 'lost'
     if (isGameOver) {
-      // Record win in daily mode (only count wins, not losses)
-      if (isDailyMode() && gameState.gameState.gameStatus === 'won') {
-        ycdleSolves.recordWin()
-      }
-      
       // Reset animations complete state when game ends (defer to avoid synchronous setState)
       queueMicrotask(() => {
         setAnimationsComplete(false)
@@ -93,7 +82,7 @@ function App() {
         setAnimationsComplete(false)
       })
     }
-  }, [gameState.gameState, ycdleSolves])
+  }, [gameState.gameState])
 
   if (loading || gameState.loadingDaily) {
     return (
@@ -206,12 +195,6 @@ function App() {
                 ? `🎉 You won in ${state.guesses.length} guess${state.guesses.length !== 1 ? 'es' : ''}!`
                 : 'Game Over. Better luck next time!'}
             </p>
-            {/* Daily solve count (only show in daily mode) */}
-            {isDailyMode() && (
-              <div className="mt-2">
-                <DailySolveCount />
-              </div>
-            )}
           </div>
         )}
 
