@@ -4,8 +4,6 @@
 
 Test your knowledge of YC's top startups! Guess the mystery company in 6 tries using clues about batch, industry, status, badges, and region.
 
-![Game Preview](https://img.shields.io/badge/React-19-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue) ![Tailwind](https://img.shields.io/badge/Tailwind-4-blue) ![Netlify](https://img.shields.io/badge/Deployed-Netlify-00C7B7)
-
 ---
 
 ## 🎮 How to Play
@@ -242,9 +240,3 @@ MIT License — feel free to fork and build your own version!
 ## ⚠️ Disclaimer
 
 This project is **not affiliated with Y Combinator**. Company data is sourced from YC's public API.
-
----
-
-<p align="center">
-  Built with 🧡 for the YC community
-</p>
